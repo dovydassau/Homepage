@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { TapeStrip } from '../components/tape-strip'
 
 type ProducerWelcomeBannerProps = {
+  code: string
   invite: {
     name: string
     workedIn: readonly string[]
@@ -13,15 +14,19 @@ type ProducerWelcomeBannerProps = {
 
 type BannerState = 'visible' | 'closing' | 'hidden'
 
-function removeWelcomeCodeFromUrl() {
+function removeWelcomeCodeFromUrl(code: string) {
   const url = new URL(window.location.href)
-  url.searchParams.delete('w')
+  url.searchParams.delete(code)
+  if (url.searchParams.get('with') === code) {
+    url.searchParams.delete('with')
+  }
 
   const cleanUrl = `${url.pathname}${url.search}${url.hash}`
   window.history.replaceState(window.history.state, '', cleanUrl)
 }
 
 export function ProducerWelcomeBanner({
+  code,
   invite,
   onClose,
 }: ProducerWelcomeBannerProps) {
@@ -29,8 +34,8 @@ export function ProducerWelcomeBanner({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    removeWelcomeCodeFromUrl()
-  }, [])
+    removeWelcomeCodeFromUrl(code)
+  }, [code])
 
   useEffect(
     () => () => {

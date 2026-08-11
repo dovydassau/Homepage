@@ -4,6 +4,10 @@ import { useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { ProducerWelcomeBanner } from '../assistant/producer-welcome-banner'
 import {
+  findWelcomeCode,
+  isWelcomeCode,
+} from '../assistant/welcome-invites'
+import {
   useProducerWelcome,
   welcomeStorageKey,
 } from './producer-welcome-context'
@@ -11,11 +15,15 @@ import {
 export function GlobalProducerWelcome() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const welcomeCode = searchParams.get('w')
+  const withCode = searchParams.get('with')
+  const welcomeCode =
+    withCode && isWelcomeCode(withCode)
+      ? withCode
+      : findWelcomeCode(Array.from(searchParams.keys()))
   const { activeCode, invite, activate, clear } = useProducerWelcome()
 
   useEffect(() => {
-    let nextCode = welcomeCode
+    let nextCode: string | null | undefined = welcomeCode
 
     if (!nextCode) {
       try {
@@ -39,7 +47,13 @@ export function GlobalProducerWelcome() {
     /^\/(?:films|assistant)\/[^/]+\/?$/.test(pathname)
 
   if (!invite || hidesWelcome) {
-    return <ProducerWelcomeBanner key={activeCode} invite={null} />
+    return (
+      <ProducerWelcomeBanner
+        key={activeCode}
+        code={activeCode}
+        invite={null}
+      />
+    )
   }
 
   return (
@@ -51,6 +65,7 @@ export function GlobalProducerWelcome() {
       <div className="mx-auto max-w-[1400px]">
         <ProducerWelcomeBanner
           key={activeCode}
+          code={activeCode}
           invite={invite}
           onClose={clear}
         />

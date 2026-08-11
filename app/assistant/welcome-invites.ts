@@ -5,7 +5,7 @@ export type WelcomeInvite = {
 }
 
 // validUntil is an absolute Unix timestamp in milliseconds.
-// /assistant?w=k
+// Supported link styles: /assistant?kr and /assistant?with=kr
 const welcomeInvites: Readonly<Record<string, WelcomeInvite>> = {
   kr: {
     name: 'Karin',
@@ -23,14 +23,25 @@ const welcomeInvites: Readonly<Record<string, WelcomeInvite>> = {
   }
 }
 
+export function isWelcomeCode(code: string) {
+  return Object.hasOwn(welcomeInvites, code)
+}
+
+export function findWelcomeCode(codes: readonly string[]) {
+  for (const code of codes) {
+    if (isWelcomeCode(code)) return code
+  }
+
+  return undefined
+}
+
 export function getWelcomeInvite(
   code: string | undefined,
   now = Date.now(),
 ) {
-  if (!code) return null
+  if (!code || !isWelcomeCode(code)) return null
 
   const invite = welcomeInvites[code]
-  if (!invite) return null
 
   if (invite.validUntil) {
     if (now > invite.validUntil) {

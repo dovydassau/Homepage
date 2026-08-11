@@ -12,6 +12,8 @@ export type Credit = CreditInput & {
 export type ExtraImageInput = {
   src: string
   description?: string
+  // Keep the image in project details, but exclude it from /contact.
+  hideFromContacts?: boolean
 }
 
 export type ExtraContentInput = {
@@ -178,7 +180,20 @@ const dopEntries: DopEntry[] = [
     director: 'Raya van der Laan',
     date: '2026-12',
     notes: 'Upcoming',
-    previewImg: 'https://firebasestorage.googleapis.com/v0/b/iconoclast-germany.appspot.com/o/fileshare%2FxEZd2jafChPIewSqgJElfBgMi3E3%2F_temp_theglass.jpg?alt=media&token=eae2852b-ab4a-4583-a029-638d2442a7df'
+    previewImg: 'https://firebasestorage.googleapis.com/v0/b/iconoclast-germany.appspot.com/o/fileshare%2FxEZd2jafChPIewSqgJElfBgMi3E3%2F_temp_theglass.jpg?alt=media&token=eae2852b-ab4a-4583-a029-638d2442a7df',
+    extraContent: [
+      {
+        title: 'BTS',
+        imageContents: [
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20glass%20that%20cuts%20between%2Fbetween1.jpeg?alt=media&token=8dc59a85-c944-48db-aa32-28327bf8e2f3'
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20glass%20that%20cuts%20between%2Fbetween2.jpg?alt=media&token=2f1c17f9-567b-4b73-b3cc-681c15472acc'
+          }
+        ],
+      },
+    ],
   },
   {
     title: 'Kurtis Wells - Higher Self',
@@ -709,7 +724,10 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Poster',
         imageContents: [
-          { src: 'https://static.wixstatic.com/media/04de08_18f573ed71e2439da3e432dd9bc104a0~mv2.jpg/v1/fill/w_720,h_976,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Plakatas%20FINAL.jpg' },
+          { 
+            src: 'https://static.wixstatic.com/media/04de08_18f573ed71e2439da3e432dd9bc104a0~mv2.jpg/v1/fill/w_720,h_976,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Plakatas%20FINAL.jpg',
+            hideFromContacts: true
+          },
         ],
       },
     ],
@@ -1099,7 +1117,7 @@ export function getContactShowcaseItems(
   for (const film of films) {
     for (const extra of film.extraContent ?? []) {
       for (const image of extra.imageContents ?? []) {
-        addItem(film, image.src)
+        if (!image.hideFromContacts) addItem(film, image.src)
       }
     }
   }
