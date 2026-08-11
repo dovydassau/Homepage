@@ -9,19 +9,21 @@ import { ProducerWelcomeProvider } from './components/producer-welcome-context'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { baseUrl } from './sitemap'
+import { films } from './films/films-data'
+import type { ProjectSearchItem } from './components/project-search'
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: 'dovydas saudys',
-    template: '%s | dovydas saudys',
+    default: 'Dovydas Saudys',
+    template: '%s | Dovydas Saudys',
   },
   description: 'Videographer based in Berlin.',
   openGraph: {
-    title: 'dovydas saudys',
+    title: 'Dovydas Saudys',
     description: 'Videographer based in Berlin.',
     url: baseUrl,
-    siteName: 'dovydas saudys',
+    siteName: 'Dovydas Saudys',
     locale: 'en_US',
     type: 'website',
   },
@@ -40,6 +42,30 @@ export const metadata: Metadata = {
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
+const searchProjects: ProjectSearchItem[] = films.map((film) => ({
+  id: film.id,
+  category: film.category,
+  title: film.title,
+  role: film.role,
+  type: film.type,
+  production: film.production,
+  year: film.year,
+  searchText: [
+    film.title,
+    film.role,
+    film.type,
+    film.production,
+    film.year,
+    film.description,
+    ...film.credits.flatMap((credit) => [credit.label, credit.value]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, ''),
+}))
+
 export default function RootLayout({
   children,
 }: {
@@ -53,7 +79,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-[var(--background)] font-[family-name:var(--font-geist-sans)] text-[var(--foreground)] antialiased">
         <main className="flex min-h-screen flex-col">
-          <Navbar />
+          <Navbar searchProjects={searchProjects} />
           <ProducerWelcomeProvider>
             <Suspense fallback={null}>
               <GlobalProducerWelcome />

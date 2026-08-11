@@ -5,7 +5,7 @@ import { Resend } from 'resend'
 export type ContactState = {
   status: 'idle' | 'success' | 'error'
   message: string
-  fieldErrors?: Partial<Record<'name' | 'email' | 'message', string>>
+  fieldErrors?: Partial<Record<'email' | 'message', string>>
 }
 
 const TO_EMAIL = process.env.CONTACT_TO_EMAIL ?? 'studio@dovydassaudys.com'
@@ -28,7 +28,6 @@ export async function sendContactEmail(
   _prevState: ContactState,
   formData: FormData,
 ): Promise<ContactState> {
-  const name = String(formData.get('name') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const message = String(formData.get('message') ?? '').trim()
   // Honeypot: bots fill hidden fields; humans leave it empty.
@@ -39,7 +38,6 @@ export async function sendContactEmail(
   }
 
   const fieldErrors: ContactState['fieldErrors'] = {}
-  if (!name) fieldErrors.name = 'Please enter your name.'
   if (!email) {
     fieldErrors.email = 'Please enter your email.'
   } else if (!EMAIL_PATTERN.test(email)) {
@@ -69,11 +67,11 @@ export async function sendContactEmail(
       from: `Portfolio Contact <${FROM_EMAIL}>`,
       to: TO_EMAIL,
       replyTo: email,
-      subject: `New message from ${name}`,
-      text: `From: ${name} <${email}>\n\n${message}`,
+      subject: `New portfolio message from ${email}`,
+      text: `From: ${email}\n\n${message}`,
       html: `
         <div style="font-family: system-ui, sans-serif; line-height: 1.6;">
-          <p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>
+          <p><strong>From:</strong> ${escapeHtml(email)}</p>
           <hr style="border: none; border-top: 1px solid #e4e4e1;" />
           <p style="white-space: pre-wrap;">${escapeHtml(message)}</p>
         </div>

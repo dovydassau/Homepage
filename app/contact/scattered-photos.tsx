@@ -1,11 +1,8 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { useCallback, useState } from 'react'
-import {
-  ImageLoadingOverlay,
-  markImageLoaded,
-} from 'app/components/image-loading-overlay'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { markImageLoaded } from 'app/components/image-loading-overlay'
 import { TapeStrip } from 'app/components/tape-strip'
 import {
   films,
@@ -84,13 +81,76 @@ const slots: Slot[] = [
     revealX: '0rem',
     revealY: '6rem',
   },
+  {
+    className: '-top-20 left-[16%] hidden w-40 lg:block',
+    rotate: 9,
+    duration: '32s',
+    revealX: '0rem',
+    revealY: '5rem',
+  },
+  {
+    className: '-top-24 right-[24%] hidden w-36 lg:block',
+    rotate: -8,
+    duration: '27s',
+    revealX: '0rem',
+    revealY: '6rem',
+  },
+  {
+    className: '-bottom-20 left-[18%] hidden w-40 lg:block',
+    rotate: -6,
+    duration: '30s',
+    revealX: '0rem',
+    revealY: '-5rem',
+  },
+  {
+    className: '-bottom-24 right-[20%] hidden w-44 lg:block',
+    rotate: 7,
+    duration: '26s',
+    revealX: '0rem',
+    revealY: '-6rem',
+  },
+  {
+    className: '-left-20 top-[18%] hidden w-36 lg:block',
+    rotate: -10,
+    duration: '29s',
+    revealX: '5rem',
+    revealY: '0rem',
+  },
+  {
+    className: '-right-20 top-[62%] hidden w-40 lg:block',
+    rotate: 10,
+    duration: '33s',
+    revealX: '-5rem',
+    revealY: '-1rem',
+  },
+  {
+    className: '-top-24 left-[46%] hidden w-32 lg:block',
+    rotate: 5,
+    duration: '28s',
+    revealX: '0rem',
+    revealY: '6rem',
+  },
+  {
+    className: '-bottom-24 left-[48%] hidden w-36 lg:block',
+    rotate: -4,
+    duration: '31s',
+    revealX: '0rem',
+    revealY: '-6rem',
+  },
 ]
+
+// This only creates lightweight metadata. Browser image requests happen solely
+// for the items currently mounted in the visible slots.
+const contactItemPool = getContactShowcaseItems(Number.POSITIVE_INFINITY)
 
 function ScatteredPhoto({
   item,
   index,
   slot,
   onOpen,
+  onInteractionStart,
+  onInteractionEnd,
+  fadingOut,
 }: {
   item: ContactShowcaseItem
   index: number
@@ -100,10 +160,13 @@ function ScatteredPhoto({
     source: SourceFrame,
     trigger: HTMLButtonElement,
   ) => void
+  onInteractionStart: () => void
+  onInteractionEnd: () => void
+  fadingOut: boolean
 }) {
   const [loaded, setLoaded] = useState(false)
   const frameStyle = {
-    animationDelay: `${index * 120}ms`,
+    animationDelay: `${Math.min(index, 7) * 70}ms`,
     '--tile-rotate': `${slot.rotate}deg`,
     '--tile-reveal-x': slot.revealX,
     '--tile-reveal-y': slot.revealY,
@@ -113,6 +176,10 @@ function ScatteredPhoto({
     <button
       type="button"
       aria-label={`Open ${item.title} project details`}
+      onMouseEnter={onInteractionStart}
+      onMouseLeave={onInteractionEnd}
+      onFocus={onInteractionStart}
+      onBlur={onInteractionEnd}
       onClick={(event) => {
         const rect = event.currentTarget.getBoundingClientRect()
         onOpen(
@@ -127,10 +194,15 @@ function ScatteredPhoto({
           event.currentTarget,
         )
       }}
-      className={`scattered-photos__frame group pointer-events-auto absolute aspect-[4/5] overflow-hidden rounded-xl bg-[var(--surface-muted)] shadow-[0_2px_5px_rgba(0,0,0,0.08),0_18px_50px_-20px_rgba(0,0,0,0.35)] outline outline-1 outline-black/[0.08] transition-[transform,box-shadow,filter] duration-300 ease-[cubic-bezier(0.2,0,0,1)] hover:z-30 hover:shadow-[0_4px_10px_rgba(0,0,0,0.1),0_28px_60px_-18px_rgba(0,0,0,0.42)] focus-visible:z-30 focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] ${slot.className}`}
+      className={`scattered-photos__frame group absolute aspect-[4/5] overflow-hidden rounded-xl bg-[var(--surface-muted)] shadow-[0_2px_5px_rgba(0,0,0,0.08),0_18px_50px_-20px_rgba(0,0,0,0.35)] outline outline-1 outline-black/[0.08] transition-[transform,box-shadow,filter] duration-300 ease-[cubic-bezier(0.2,0,0,1)] hover:z-30 hover:shadow-[0_4px_10px_rgba(0,0,0,0.1),0_28px_60px_-18px_rgba(0,0,0,0.42)] focus-visible:z-30 focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] ${
+        loaded
+          ? fadingOut
+            ? 'scattered-photos__frame--loaded scattered-photos__frame--fading pointer-events-none'
+            : 'scattered-photos__frame--loaded pointer-events-auto'
+          : 'scattered-photos__frame--loading pointer-events-none'
+      } ${slot.className}`}
       style={frameStyle}
     >
-      <ImageLoadingOverlay loaded={loaded} />
       <img
         src={item.src}
         alt={`${item.title} project still`}
@@ -163,12 +235,21 @@ function ScatteredPhoto({
 }
 
 export function ScatteredPhotos() {
-  const items = getContactShowcaseItems(slots.length)
+  const [items, setItems] = useState(() =>
+    contactItemPool.slice(0, slots.length),
+  )
   const [openProject, setOpenProject] = useState<{
     item: ContactShowcaseItem
     source: SourceFrame
     trigger: HTMLButtonElement
   } | null>(null)
+  const [fadingSlots, setFadingSlots] = useState<Set<number>>(
+    () => new Set(),
+  )
+  const nextItemIndex = useRef(items.length)
+  const replacementTimers = useRef(
+    new Map<number, ReturnType<typeof setTimeout>>(),
+  )
 
   const selectedFilm = openProject
     ? getFilmBySlug(openProject.item.filmId)
@@ -185,6 +266,74 @@ export function ScatteredPhotos() {
     requestAnimationFrame(() => trigger?.focus())
   }, [openProject])
 
+  const cancelReplacement = useCallback((slotIndex: number) => {
+    const timer = replacementTimers.current.get(slotIndex)
+    if (timer) {
+      clearTimeout(timer)
+      replacementTimers.current.delete(slotIndex)
+    }
+    setFadingSlots((current) => {
+      if (!current.has(slotIndex)) return current
+      const next = new Set(current)
+      next.delete(slotIndex)
+      return next
+    })
+  }, [])
+
+  const scheduleReplacement = useCallback(
+    (slotIndex: number) => {
+      cancelReplacement(slotIndex)
+      if (
+        openProject ||
+        nextItemIndex.current >= contactItemPool.length
+      ) {
+        return
+      }
+
+      const timer = setTimeout(() => {
+        setFadingSlots((current) => new Set(current).add(slotIndex))
+
+        const replaceTimer = setTimeout(() => {
+          const nextItem = contactItemPool[nextItemIndex.current]
+          if (!nextItem) {
+            setFadingSlots((current) => {
+              const next = new Set(current)
+              next.delete(slotIndex)
+              return next
+            })
+            replacementTimers.current.delete(slotIndex)
+            return
+          }
+          nextItemIndex.current += 1
+          setItems((current) => {
+            const next = [...current]
+            next[slotIndex] = nextItem
+            return next
+          })
+          setFadingSlots((current) => {
+            const next = new Set(current)
+            next.delete(slotIndex)
+            return next
+          })
+          replacementTimers.current.delete(slotIndex)
+        }, 700)
+
+        replacementTimers.current.set(slotIndex, replaceTimer)
+      }, 1000)
+
+      replacementTimers.current.set(slotIndex, timer)
+    },
+    [cancelReplacement, openProject],
+  )
+
+  useEffect(
+    () => () => {
+      replacementTimers.current.forEach(clearTimeout)
+      replacementTimers.current.clear()
+    },
+    [],
+  )
+
   if (items.length === 0) return null
 
   return (
@@ -195,13 +344,17 @@ export function ScatteredPhotos() {
       >
         {items.map((item, index) => (
           <ScatteredPhoto
-            key={item.src}
+            key={`${index}-${item.src}`}
             item={item}
             index={index}
             slot={slots[index % slots.length]}
-            onOpen={(nextItem, source, trigger) =>
+            fadingOut={fadingSlots.has(index)}
+            onOpen={(nextItem, source, trigger) => {
+              cancelReplacement(index)
               setOpenProject({ item: nextItem, source, trigger })
-            }
+            }}
+            onInteractionStart={() => cancelReplacement(index)}
+            onInteractionEnd={() => scheduleReplacement(index)}
           />
         ))}
       </nav>

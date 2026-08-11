@@ -52,6 +52,8 @@ export type Film = {
   // Optional label, e.g. 'Upcoming', shown as a pill in the list and detail.
   tag?: string
   inactive?: boolean
+  // Always lists first within its category (and in All).
+  pinned?: boolean
 }
 
 // Temp: projects before this date without a videoUrl appear muted in the list.
@@ -66,6 +68,23 @@ export function isFilmInactive(film: Film): boolean {
 
 export function isFilmVisibleInAll(film: Film): boolean {
   return film.tag?.toLowerCase() !== 'upcoming' && !isFilmInactive(film)
+}
+
+export function isFilmIndependent(film: Film): boolean {
+  return film.production.trim().toLowerCase() === 'independent'
+}
+
+export function isFilmVisibleInWorks(film: Film): boolean {
+  const isIndependentUpcoming =
+    isFilmIndependent(film) &&
+    film.tag?.toLowerCase() === 'upcoming' &&
+    !isFilmInactive(film)
+
+  return (
+    isIndependentUpcoming ||
+    (isFilmVisibleInAll(film) &&
+      (!isFilmIndependent(film) || Boolean(film.pinned)))
+  )
 }
 
 const gradients = [
@@ -137,11 +156,18 @@ function formatFilmYear(date: Date): string {
 }
 
 function byDopEntryDateDesc(a: DopEntry, b: DopEntry) {
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
   return parseFilmDate(b.date).getTime() - parseFilmDate(a.date).getTime()
 }
 
 function byCrewEntryYearDesc(a: CrewEntry, b: CrewEntry) {
   return parseFilmDate(b.year).getTime() - parseFilmDate(a.year).getTime()
+}
+
+/** Pinned films stay above date order (Featured + All). */
+export function compareFilmsPinnedThenNewest(first: Film, second: Film) {
+  if (first.pinned !== second.pinned) return first.pinned ? -1 : 1
+  return second.date.getTime() - first.date.getTime()
 }
 
 type DopEntry = {
@@ -168,9 +194,24 @@ type DopEntry = {
   // Optional extra media (behind the scenes, etc.) shown after the description.
   extraContent?: ExtraContentInput[]
   tag?: string
+  // Always lists first in featured (and All).
+  pinned?: boolean
 }
 
+const REEL_VIDEO_URL = 'https://www.youtube.com/watch?v=efYb6sOnJ74'
+
 const dopEntries: DopEntry[] = [
+  // {
+  //   title: 'Reel',
+  //   tag: 'New',
+  //   type: 'Showreel',
+  //   role: 'DP / Director',
+  //   production: 'Independent',
+  //   date: '2026-08',
+  //   videoUrl: REEL_VIDEO_URL,
+  //   previewImg: 'https://i.ytimg.com/vi/efYb6sOnJ74/maxresdefault.jpg',
+  //   pinned: true,
+  // },
   {
     title: 'The Glass That Cuts Between',
     tag: 'Upcoming',
@@ -180,6 +221,7 @@ const dopEntries: DopEntry[] = [
     director: 'Raya van der Laan',
     date: '2026-12',
     notes: 'Upcoming',
+    pinned: true,
     previewImg: 'https://firebasestorage.googleapis.com/v0/b/iconoclast-germany.appspot.com/o/fileshare%2FxEZd2jafChPIewSqgJElfBgMi3E3%2F_temp_theglass.jpg?alt=media&token=eae2852b-ab4a-4583-a029-638d2442a7df',
     extraContent: [
       {
@@ -257,7 +299,7 @@ const dopEntries: DopEntry[] = [
     extraCredits: [
       { label: 'Original Soundtrack', value: 'Nikita Šhurmin' },
       { label: '1st AD', value: 'Goda Mikuckytė' },
-      { label: '1st AC', value: 'Rimvydas Ardickas' },
+      { label: 'Focus | 1st AC', value: 'Rimvydas Ardickas' },
       { label: 'Spark', value: 'Gvidas Bindokas' },
       { label: 'Hair & Makeup', value: 'Sidas Martinavičius' },
       { label: 'Color grading', value: 'Rimvydas Ardickas' },
@@ -268,7 +310,24 @@ const dopEntries: DopEntry[] = [
         imageContents: [
           {
             src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fhumana%2FR1-02806-015A.jpeg?alt=media&token=bd4ca1ef-c461-4b3d-acd8-73b9a8148a72',
+            description: "Me and lead actress Raimonda"
           },
+          { 
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/dbf59e8b-0d16-4e96-86f3-ff1ff494bd78/DSC04977.JPG?format=1000w',
+            hideFromContacts: true
+          },
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/2337c756-e0ae-462e-8742-777e7e1232b5/71310022.JPG?format=1000w',
+            hideFromContacts: true
+          },
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/e76ade30-f0ac-44e4-b044-09a2e364046f/R1-02806-019A.JPG?format=1000w',
+            hideFromContacts: true
+          },
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/6938b8dc-8750-4a36-9b97-03174b2261e3/71310024.JPG?format=1000w',
+            hideFromContacts: true
+          }
         ],
       },
     ],
@@ -365,6 +424,22 @@ const dopEntries: DopEntry[] = [
       { label: 'PA', value: 'Vilius Morkūnas' },
     ],
     videoUrl: 'https://vimeo.com/581525503',
+    extraContent: [
+      {
+        title: "Behind the Scenes",
+        imageContents: [
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/cc71dd7b-4290-44c6-912f-369cbe599d73/DSC_0424-Enhanced.jpg?format=1000w'
+          },
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/2201089b-c494-4a17-a6f2-9ceb9894384a/DSC_0494-Enhanced.jpg?format=1000w'
+          },
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/4f8593c8-3f82-4da5-bf8f-ed1ab18942ee/DSC_0561-Enhanced.jpg?format=1000w'
+          }
+        ]
+      }
+    ]
   },
   {
     title: 'jautì - Mamai',
@@ -531,10 +606,29 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Memories',
         imageContents: [
-           { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F24%20lufthansa%2F_luft1.jpeg?alt=media&token=39735cd1-1600-495a-9536-bb5d87170243' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F24%20lufthansa%2F_luft1.jpeg?alt=media&token=39735cd1-1600-495a-9536-bb5d87170243' },
         ],
       },
     ],
+  },
+  {
+    title: 'Mercedes ft. Tyla',
+    role: 'Casting PA',
+    type: 'Commercial',
+    production: 'Iconoclast',
+    year: '2025-01',
+    director: 'Jonas Lindstroem',
+    videoUrl: 'https://bv-04.bubblevault.com/3014f7e3-1662-45ba-8468-6fc29ba8b08c/46add6ee-e394-4919-a43f-bac8d6274ff2/mp4/720x480/46add6ee-e394-4919-a43f-bac8d6274ff2.mp4'
+  },
+  {
+    title: 'ALDI Nord - Gute Beats für alle',
+    role: 'PA',
+    type: 'Commercial',
+    production: 'Iconoclast',
+    year: '2023-07',
+    director: 'Mac Duke',
+    dp: 'Gerrit Piechoski',
+    videoUrl: 'https://www.youtube.com/watch?v=_PTJ7ohnhaM',
   },
   {
     title: "Finn Ronsdorf - Let's Say Goodbye",
@@ -556,14 +650,14 @@ const crewEntries: CrewEntry[] = [
     videoUrl: 'https://www.youtube.com/watch?v=iBYYUt7xs00',
     extraCredits: [
       { label: 'Production Manager', value: 'Darija Vlada Skvarnavičiūtė' },
-      { label: '1st AC', value: 'Martynas Šiaučiūnas' },
+      { label: 'Focus | 1st AC', value: 'Martynas Šiaučiūnas' },
       { label: '2nd AC', value: 'Laura Aliukonytė' },
     ],
   },
   {
     title: 'Room 1620 (Upcoming)',
     type: 'Short',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Watcher Entertainment',
     director: 'Anthony D. Frederick',
     year: '2026',
@@ -572,7 +666,7 @@ const crewEntries: CrewEntry[] = [
   {
     title: 'Jessica Shy - Žiburiai',
     type: 'Music Video',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'OpenPlay',
     director: 'Laura Udrė',
     dp: 'Nikolas Verseckas',
@@ -589,13 +683,37 @@ const crewEntries: CrewEntry[] = [
     year: '2026-01',
     videoUrl: 'https://vimeo.com/1156986421',
     extraCredits: [
-      { label: '1st AC', value: 'Yannick Hasse' },
+      { label: 'Focus | 1st AC', value: 'Yannick Hasse' },
+    ],
+    extraContent: [
+      {
+        title: "Behind the Scenes",
+        imageContents: [
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F24%20signal%20path%2FCIMG0147.JPG?alt=media&token=2104b35d-e14c-4b4d-8bda-c56903f38f9b',
+            hideFromContacts: true
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F24%20signal%20path%2FCIMG0033.JPG?alt=media&token=c5ee7f94-f3ea-4034-afab-033b5eb11519',
+            hideFromContacts: true
+          }
+        ]
+      }
     ]
+  },
+  {
+    title: 'ZDF - Olympia',
+    type: 'TVC',
+    role: 'Research PA',
+    production: 'Iconoclast',
+    director: 'Mario Clement',
+    year: '2024-01',
+    videoUrl: 'https://www.youtube.com/watch?v=Pn6TS5Xl8mg'
   },
   {
     title: 'Lucid Dreams',
     type: 'Short',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Plopsas',
     director: 'Montis Norvaišis',
     dp: 'Matas Juškaitis',
@@ -604,11 +722,34 @@ const crewEntries: CrewEntry[] = [
     extraCredits: [
       { label: '2nd AC', value: 'Milda Juodvalkytė' },
     ],
+    extraContent: [
+      {
+        title: 'Behind the Scenes',
+        imageContents: [
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20lucid%20dreqams%2FRJphotography%20(1).jpg?alt=media&token=5d05bfcd-74b2-40ce-84fc-bff8c0cb435c',
+            hideFromContacts: true,
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20lucid%20dreqams%2FRJphotography%20(29).jpg?alt=media&token=28d91f86-0fab-4911-9c6f-93a7a98f59be',
+            hideFromContacts: true
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20lucid%20dreqams%2FDSC00031.jpg?alt=media&token=a5385587-feb0-4217-8deb-48f87af9c3be',
+            hideFromContacts: true //due to file size
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20lucid%20dreqams%2FDSC00003.jpg?alt=media&token=1ff01f5e-bd00-4a37-8b9b-7403ee8faab9',
+            hideFromContacts: true, // due to file size
+          },
+        ],
+      },
+    ],
   },
   {
     title: 'Rimvis - Bailys',
     type: 'Music Video',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Sound Focus',
     director: 'Juozapas Mikulėnas',
     dp: 'Domas Gudaitis',
@@ -619,15 +760,33 @@ const crewEntries: CrewEntry[] = [
     ],
     extraContent: [
       {
-        title: 'Behind the scenes',
+        title: 'Behind the Scenes',
         videoUrl: 'https://www.youtube.com/watch?v=2p_-BhS82TM',
       },
+      {
+        title: 'Behind the Scenes',
+        imageContents: [
+          {
+            src: 'https://images.squarespace-cdn.com/content/v1/62a48b14b06b8043cb398186/36b9c9d3-67f8-43bc-9189-0b92470d763a/DSC_0374.jpg?format=1000w',
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20odiseja%2FDSC_0169%20(2).jpg?alt=media&token=28a5affe-d298-459d-b7b8-df4aad3c0f3e'
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20odiseja%2FDSC_0085..jpg?alt=media&token=25d0e166-bf6e-4d92-bbe1-c3e9153faaa7'
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F22%20odiseja%2FDSC_0272%20(2).jpg?alt=media&token=5e71ba28-dfcd-49c7-bf74-c7a95d0fa397',
+            hideFromContacts: true
+          },
+        ],
+      }
     ],
   },
   {
     title: 'Free Finga - Atlanta',
     type: 'Music Video',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Autostrada',
     director: 'Justinas Vilutis',
     dp: 'Nikolas Verseckas',
@@ -637,7 +796,7 @@ const crewEntries: CrewEntry[] = [
   {
     title: 'Free Finga - Vien Tik Tu',
     type: 'Music Video',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Autostrada',
     director: 'V.V',
     dp: 'Nikolas Verseckas',
@@ -650,7 +809,7 @@ const crewEntries: CrewEntry[] = [
   },
   {
     title: 'Švyturys - Tipit',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Zest',
     director: 'Domas Merkliopas',
     dp: 'Imantas Boiko',
@@ -675,7 +834,7 @@ const crewEntries: CrewEntry[] = [
   {
     title: 'Branginu.lt',
     type: 'TVC',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Pixel Studio',
     director: 'Mantas Norkus',
     dp: 'Laurynas Lukoševičius',
@@ -685,7 +844,7 @@ const crewEntries: CrewEntry[] = [
   {
     title: 'Shvininiai Sharvai - Trenininginiai Pingvinai',
     type: 'Music Video',
-    role: '1st AC',
+    role: 'Focus | 1st AC',
     production: 'Independent',
     director: 'Kristupas Zmejauskas',
     year: '2022',
@@ -724,9 +883,9 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Poster',
         imageContents: [
-          { 
+          {
             src: 'https://static.wixstatic.com/media/04de08_18f573ed71e2439da3e432dd9bc104a0~mv2.jpg/v1/fill/w_720,h_976,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Plakatas%20FINAL.jpg',
-            hideFromContacts: true
+            hideFromContacts: true,
           },
         ],
       },
@@ -819,10 +978,10 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Office Runner BTS',
         imageContents: [
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0006.JPG?alt=media&token=98b82f8f-7dec-407d-bc4f-6267309bd9a2' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0006.JPG?alt=media&token=98b82f8f-7dec-407d-bc4f-6267309bd9a2', hideFromContacts: true },
           { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0010.JPG?alt=media&token=176b0c4f-9aeb-4e0d-ac6b-b83e43a9ed42' },
           { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0011.JPG?alt=media&token=bc702db6-b867-46fc-b2b6-347be0aaaced' },
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0023.JPG?alt=media&token=12d4a933-45ab-4bb2-8280-58a934d9d965' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0023.JPG?alt=media&token=12d4a933-45ab-4bb2-8280-58a934d9d965', hideFromContacts: true },
         ],
       },
       {
@@ -918,14 +1077,14 @@ const crewEntries: CrewEntry[] = [
       { label: '1st AD', value: 'Lukas Kudapčenka' },
       { label: 'PA', value: 'Fernanda Marija Medziukaitė' }
     ],
-    extraContent: [
-      {
-        title: 'Memories',
-        imageContents: [
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328' },
-        ],
-      },
-    ],
+    // extraContent: [
+    //   {
+    //     title: 'Memories',
+    //     imageContents: [
+    //       { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328' },
+    //     ],
+    //   },
+    // ],
   },
   {
     title: 'Adidas Originals - Athletes of Change',
@@ -969,8 +1128,8 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Memories',
         imageContents: [
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328' },
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea1.jpeg?alt=media&token=a26695e9-111e-48b2-9bdd-afb65880e956' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328', hideFromContacts: true },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea1.jpeg?alt=media&token=a26695e9-111e-48b2-9bdd-afb65880e956', hideFromContacts: true },
         ],
       },
     ],
@@ -989,10 +1148,10 @@ const crewEntries: CrewEntry[] = [
       {
         title: 'Memories',
         imageContents: [
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci1.jpeg?alt=media&token=62f47adc-15c4-4911-99d2-950c49afba48' },
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci2.jpeg?alt=media&token=a727f18c-ba12-40be-be79-49a0686b7ec1' },
-          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci3.jpeg?alt=media&token=14c62b3b-5919-4fa6-83e7-0b80cc3e4f68' },
-          { 
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci1.jpeg?alt=media&token=62f47adc-15c4-4911-99d2-950c49afba48', hideFromContacts: true },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci2.jpeg?alt=media&token=a727f18c-ba12-40be-be79-49a0686b7ec1', hideFromContacts: true },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci3.jpeg?alt=media&token=14c62b3b-5919-4fa6-83e7-0b80cc3e4f68', hideFromContacts: true },
+          {
             src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci4.jpeg?alt=media&token=948f69ba-8e21-43bf-85b4-66b6fadae8c3',
             description: 'Matt Lambert & Me'
           },
@@ -1021,6 +1180,7 @@ const featuredFilms: Film[] = [...dopEntries]
       gradient: gradients[index % gradients.length],
       videoUrl: entry.videoUrl,
       tag: entry.tag,
+      pinned: entry.pinned,
       previewImg: entry.previewImg,
       description: entry.description,
       extraContent: buildExtraContent(filmId, entry.extraContent),
@@ -1098,7 +1258,7 @@ export type ContactShowcaseItem = {
   href: string
 }
 
-/** Pull project-linked BTS / stills for the contact page. */
+/** Pull only project-linked extra-content images for the contact page. */
 export function getContactShowcaseItems(
   limit = 5,
 ): ContactShowcaseItem[] {
@@ -1122,23 +1282,10 @@ export function getContactShowcaseItems(
     }
   }
 
-  for (const film of films) {
-    if (items.length >= limit) break
-    const preview = film.previewImg
-    if (
-      preview &&
-      preview.startsWith('http') &&
-      !preview.includes('google.com/url') &&
-      !items.some((item) => item.src === preview)
-    ) {
-      addItem(film, preview)
-    }
-  }
-
   return items.slice(0, limit)
 }
 
-export { toEmbedUrl } from 'app/lib/to-embed-url'
+export { isDirectVideoUrl, toEmbedUrl } from 'app/lib/to-embed-url'
 
 export function formatFilmNumber(index: number) {
   return String(index + 1).padStart(2, '0')

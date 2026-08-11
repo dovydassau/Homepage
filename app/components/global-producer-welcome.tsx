@@ -45,6 +45,8 @@ export function GlobalProducerWelcome() {
     pathname.startsWith('/return/')
   const isFilmDetail =
     /^\/(?:films|assistant)\/[^/]+\/?$/.test(pathname)
+  const isFilmWorkspace =
+    /^\/(?:films|assistant)(?:\/|$)/.test(pathname)
 
   if (!invite || hidesWelcome) {
     return (
@@ -58,7 +60,11 @@ export function GlobalProducerWelcome() {
 
   return (
     <div
-      className={`page-shell w-full pt-3 sm:pt-4 lg:pt-8 ${
+      className={`page-shell w-full ${
+        isFilmWorkspace
+          ? 'pt-[4.75rem] sm:pt-[6.25rem] lg:pt-[6.5rem]'
+          : 'pt-3 sm:pt-4 lg:pt-8'
+      } ${
         isFilmDetail ? 'hidden lg:block' : ''
       }`}
     >

@@ -23,12 +23,15 @@ import { useProducerWelcome } from '../components/producer-welcome-context'
 import { TapeStrip } from '../components/tape-strip'
 import {
   categoryBasePath,
+  compareFilmsPinnedThenNewest,
   filmPath,
   films,
   formatFilmNumber,
   getFilmBySlug,
   isFilmInactive,
   isFilmVisibleInAll,
+  isFilmVisibleInWorks,
+  isDirectVideoUrl,
   toEmbedUrl,
   type ExtraContent,
   type ExtraImageInput,
@@ -37,12 +40,9 @@ import {
 } from './films-data'
 
 type ShowcaseCategory = FilmCategory | 'all'
+type AllWorksBasePath = '/all' | '/works'
 
 type PreviewLayer = { id: number; src: string; loaded: boolean }
-
-function compareFilmsNewestFirst(first: Film, second: Film) {
-  return second.date.getTime() - first.date.getTime()
-}
 
 function MousePreview({
   src,
@@ -358,6 +358,7 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
 function resolveInitialState(
   initialSlug?: string,
   initialCategory: ShowcaseCategory = 'featured',
+  excludeIndependent = false,
 ): {
   category: ShowcaseCategory
   selectedId: string
@@ -375,7 +376,14 @@ function resolveInitialState(
 
   const firstInCategory =
     initialCategory === 'all'
-      ? films.filter(isFilmVisibleInAll).sort(compareFilmsNewestFirst)[0]
+      ? films
+          .filter(
+            (entry) =>
+              excludeIndependent
+                ? isFilmVisibleInWorks(entry)
+                : isFilmVisibleInAll(entry),
+          )
+          .sort(compareFilmsPinnedThenNewest)[0]
       : films.find((entry) => entry.category === initialCategory)
 
   return {
@@ -399,11 +407,16 @@ function FilmTag({
         ? 'pointer-events-none absolute right-0 top-1/2 z-10 flex -translate-y-1/2'
         : 'relative inline-flex'
 
+  const color =
+    tag.trim().toLowerCase() === 'upcoming' ? '#184fff' : '#FF5C00'
+
   return (
     <TapeStrip
       variant="marker"
-      color="#FF5C00"
-      className={`${placement} shrink-0 items-center px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10px] font-black uppercase leading-none tracking-[-0.035em] text-black`}
+      color={color}
+      className={`${placement} shrink-0 items-center px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10px] font-black uppercase leading-none tracking-[-0.035em] ${
+        tag.trim().toLowerCase() === 'upcoming' ? 'text-white' : 'text-black'
+      }`}
     >
       {tag}
     </TapeStrip>
@@ -439,10 +452,13 @@ function FilmPreview({
 }) {
   // Latch so we don't re-run detail-media-reveal after the fly finishes.
   const [skippedCssReveal] = useState(deferReveal)
-  const embedUrl = film.videoUrl ? toEmbedUrl(film.videoUrl) : null
+  const videoUrl = film.videoUrl?.trim() || null
+  const directVideoUrl =
+    videoUrl && isDirectVideoUrl(videoUrl) ? videoUrl : null
+  const embedUrl = videoUrl && !directVideoUrl ? toEmbedUrl(videoUrl) : null
   const hideUntilFlySettles = deferReveal
 
-  if (embedUrl) {
+  if (directVideoUrl || embedUrl) {
     return (
       <div
         data-detail-media
@@ -454,15 +470,27 @@ function FilmPreview({
             <FilmTag tag={film.tag} />
           </div>
         )}
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          title={film.title}
-          className="absolute inset-0 h-full w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          loading="lazy"
-        />
+        {directVideoUrl ? (
+          <video
+            key={directVideoUrl}
+            src={directVideoUrl}
+            title={film.title}
+            className="absolute inset-0 h-full w-full"
+            controls
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <iframe
+            key={embedUrl!}
+            src={embedUrl!}
+            title={film.title}
+            className="absolute inset-0 h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
+        )}
       </div>
     )
   }
@@ -567,7 +595,6 @@ export function FilmDetail({
         <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-medium leading-tight tracking-[-0.02em] text-[var(--accent)]">
           {film.title}
         </h2>
-        {film.tag && <FilmTag tag={film.tag} />}
       </div>
       <p
         className="detail-rise mt-1 text-[14px] text-[var(--foreground-muted)]"
@@ -617,21 +644,17 @@ export function FilmDetail({
 
 function BtsImageCaption({ description }: { description: string }) {
   return (
-    <>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 z-[9] h-24 w-36 sm:h-28 sm:w-44"
-        style={{
-          background:
-            'radial-gradient(ellipse 100% 100% at 0% 100%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 55%, transparent 72%)',
-        }}
-      />
-      <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[calc(100%-3rem)]">
-        <span className="inline-block rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] font-medium leading-snug tracking-wide text-white/95 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:text-[12px]">
+    <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[calc(100%-3rem)]">
+      <TapeStrip
+        variant="marker"
+        color="#7151D8"
+        className="relative inline-flex max-w-full px-3 py-2 font-[family-name:var(--font-geist-mono)] text-[11px] font-semibold leading-snug tracking-[-0.02em] text-white sm:text-[12px]"
+      >
+        <span className="relative z-10">
           {description}
         </span>
-      </div>
-    </>
+      </TapeStrip>
+    </div>
   )
 }
 
@@ -877,7 +900,10 @@ function ExpandableImages({
 }
 
 function ExtraContentItem({ item }: { item: ExtraContent }) {
-  const embedUrl = item.videoUrl ? toEmbedUrl(item.videoUrl) : null
+  const videoUrl = item.videoUrl?.trim() || null
+  const directVideoUrl =
+    videoUrl && isDirectVideoUrl(videoUrl) ? videoUrl : null
+  const embedUrl = videoUrl && !directVideoUrl ? toEmbedUrl(videoUrl) : null
   const images = item.imageContents ?? []
 
   return (
@@ -893,16 +919,27 @@ function ExtraContentItem({ item }: { item: ExtraContent }) {
       {images.length > 0 && (
         <ExpandableImages images={images} title={item.title} />
       )}
-      {embedUrl && (
+      {(directVideoUrl || embedUrl) && (
         <div className="mt-3 aspect-video w-full overflow-hidden rounded-xl border border-[var(--border)] bg-black sm:rounded-2xl">
-          <iframe
-            src={embedUrl}
-            title={item.title}
-            className="h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            loading="lazy"
-          />
+          {directVideoUrl ? (
+            <video
+              src={directVideoUrl}
+              title={item.title}
+              className="h-full w-full"
+              controls
+              playsInline
+              preload="metadata"
+            />
+          ) : (
+            <iframe
+              src={embedUrl!}
+              title={item.title}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
+          )}
         </div>
       )}
     </div>
@@ -979,13 +1016,17 @@ export function FilmsShowcase({
   initialSlug,
   initialCategory = 'featured',
   workedIn,
+  allBasePath = '/works',
+  excludeIndependent = false,
 }: {
   initialSlug?: string
   initialCategory?: ShowcaseCategory
   workedIn?: readonly string[]
+  allBasePath?: AllWorksBasePath
+  excludeIndependent?: boolean
 }) {
   const [initial] = useState(() =>
-    resolveInitialState(initialSlug, initialCategory),
+    resolveInitialState(initialSlug, initialCategory, excludeIndependent),
   )
   const [category, setCategory] = useState<ShowcaseCategory>(initial.category)
   const [selectedId, setSelectedId] = useState(initial.selectedId)
@@ -995,6 +1036,8 @@ export function FilmsShowcase({
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [fly, setFly] = useState<FlyState | null>(null)
   const previewCardRef = useRef<HTMLDivElement>(null)
+  const desktopDetailScrollRef = useRef<HTMLDivElement>(null)
+  const mobileDetailScrollRef = useRef<HTMLDivElement>(null)
   const flyToken = useRef(0)
   const { invite: welcomeInvite } = useProducerWelcome()
   const activeWorkedIn =
@@ -1003,14 +1046,16 @@ export function FilmsShowcase({
   const visibleFilms = useMemo(() => {
     const filteredFilms = films.filter((film) =>
       category === 'all'
-        ? isFilmVisibleInAll(film)
+        ? excludeIndependent
+          ? isFilmVisibleInWorks(film)
+          : isFilmVisibleInAll(film)
         : film.category === category,
     )
 
     return category === 'all'
-      ? filteredFilms.sort(compareFilmsNewestFirst)
+      ? filteredFilms.sort(compareFilmsPinnedThenNewest)
       : filteredFilms
-  }, [category])
+  }, [category, excludeIndependent])
   const workedInSet = useMemo(
     () => new Set(activeWorkedIn),
     [activeWorkedIn],
@@ -1043,12 +1088,14 @@ export function FilmsShowcase({
     if (options?.openMobileDetail) {
       setMobileDetailId(film.id)
     }
-    updateUrl(category === 'all' ? `/works/${film.id}` : filmPath(film))
+    updateUrl(
+      category === 'all' ? `${allBasePath}/${film.id}` : filmPath(film),
+    )
   }
 
   function closeMobileDetail() {
     setMobileDetailId(null)
-    updateUrl(category === 'all' ? '/works' : categoryBasePath(category))
+    updateUrl(category === 'all' ? allBasePath : categoryBasePath(category))
   }
 
   function handleCategoryChange(next: FilmCategory) {
@@ -1070,7 +1117,7 @@ export function FilmsShowcase({
   useEffect(() => {
     const handlePopState = () => {
       const match = window.location.pathname.match(
-        /^\/(films|assistant|works)(?:\/([^/]+))?\/?$/,
+        /^\/(films|assistant|works|all)(?:\/([^/]+))?\/?$/,
       )
       setMobileDetailId(null)
 
@@ -1080,29 +1127,39 @@ export function FilmsShowcase({
       if (slug) {
         const film = getFilmBySlug(slug)
         if (film) {
-          setCategory(section === 'works' ? 'all' : film.category)
+          setCategory(
+            section === 'works' || section === 'all'
+              ? 'all'
+              : film.category,
+          )
           setSelectedId(film.id)
         }
         return
       }
 
       const nextCategory: ShowcaseCategory =
-        section === 'works'
+        section === 'works' || section === 'all'
           ? 'all'
           : section === 'assistant'
             ? 'assistant'
             : 'featured'
-      const first = films.find((film) =>
+      const first =
         nextCategory === 'all'
-          ? isFilmVisibleInAll(film)
-          : film.category === nextCategory,
-      )
+          ? films
+              .filter(
+                (film) =>
+                  excludeIndependent
+                    ? isFilmVisibleInWorks(film)
+                    : isFilmVisibleInAll(film),
+              )
+              .sort(compareFilmsPinnedThenNewest)[0]
+          : films.find((film) => film.category === nextCategory)
       setCategory(nextCategory)
       if (first) setSelectedId(first.id)
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [])
+  }, [excludeIndependent])
 
   const selectedFilm = getFilmBySlug(selectedId)
   const selectedIndex = selectedFilm
@@ -1120,6 +1177,20 @@ export function FilmsShowcase({
             .findIndex((film) => film.id === mobileDetailId)
         : -1
   const detailOpen = mobileFilm !== null
+  const desktopTopPadding = welcomeInvite ? 'pt-0' : 'pt-[6.5rem]'
+  const mobileTopPadding =
+    welcomeInvite && !detailOpen
+      ? 'pt-0'
+      : 'pt-[4.75rem] sm:pt-[6.25rem]'
+
+  // Keep the project list anchored where the user was browsing, but always
+  // start a newly selected project's independent detail pane from the top.
+  useEffect(() => {
+    desktopDetailScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    if (mobileDetailId) {
+      mobileDetailScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    }
+  }, [mobileDetailId, selectedId])
 
   return (
     <>
@@ -1136,15 +1207,19 @@ export function FilmsShowcase({
         />
       )}
 
+      <div className="h-full min-h-0">
       {/* Desktop: click-to-select, resizable two-pane */}
-      <div className="mt-2 hidden lg:block">
+      <div className="hidden h-full min-h-0 lg:block">
       <Group
         orientation="horizontal"
         id="films-panels"
-        style={{ overflow: 'visible' }}
+        style={{ height: '100%', overflow: 'hidden' }}
       >
-        <Panel defaultSize="42%" minSize="28%" style={{ overflow: 'visible' }}>
-          <div className="films-detail-scroll sticky top-24 max-h-[calc(100vh-8rem)] self-start overflow-y-auto pr-8">
+        <Panel defaultSize="42%" minSize="28%" style={{ overflow: 'hidden' }}>
+          <div
+            ref={desktopDetailScrollRef}
+            className={`films-detail-scroll h-full overflow-y-auto overscroll-contain pb-5 pr-8 ${desktopTopPadding}`}
+          >
             {selectedFilm && selectedIndex >= 0 && (
               <FilmDetail
                 key={selectedFilm.id}
@@ -1163,8 +1238,9 @@ export function FilmsShowcase({
           </span>
         </Separator>
 
-        <Panel defaultSize="58%" minSize="35%" style={{ overflow: 'visible' }}>
-          <DataTable themed className="pl-2">
+        <Panel defaultSize="58%" minSize="35%" style={{ overflow: 'hidden' }}>
+          <div className={`films-detail-scroll h-full overflow-y-auto overscroll-contain pb-5 pl-2 ${desktopTopPadding}`}>
+          <DataTable themed>
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[13px] text-[var(--foreground-muted)]">
                 {visibleFilms.length}{' '}
@@ -1253,15 +1329,16 @@ export function FilmsShowcase({
               )
             })}
           </DataTable>
+          </div>
         </Panel>
       </Group>
       </div>
 
       {/* Mobile: iOS-style navigation stack */}
-      <div className="relative mt-2 overflow-hidden lg:hidden">
+      <div className="relative h-full min-h-0 overflow-hidden lg:hidden">
         {/* List screen */}
         <div
-          className={`transition-[transform,opacity] duration-300 ease-out ${
+          className={`films-detail-scroll h-full min-h-0 overflow-y-auto overscroll-contain pb-3 transition-[transform,opacity] duration-300 ease-out sm:pb-4 ${mobileTopPadding} ${
             detailOpen
               ? 'pointer-events-none absolute inset-0 -translate-x-1/4 opacity-0'
               : 'relative translate-x-0 opacity-100'
@@ -1339,7 +1416,8 @@ export function FilmsShowcase({
 
         {/* Detail screen */}
         <div
-          className={`transition-[transform,opacity] duration-300 ease-out ${
+          ref={mobileDetailScrollRef}
+          className={`films-detail-scroll h-full min-h-0 overflow-y-auto overscroll-contain pb-3 transition-[transform,opacity] duration-300 ease-out sm:pb-4 ${mobileTopPadding} ${
             detailOpen
               ? 'relative translate-x-0 opacity-100'
               : 'pointer-events-none absolute inset-0 translate-x-full opacity-0'
@@ -1360,6 +1438,7 @@ export function FilmsShowcase({
             </div>
           )}
         </div>
+      </div>
       </div>
     </>
   )

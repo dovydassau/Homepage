@@ -3,29 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { menuItems } from './nav-items'
+import {
+  ProjectSearch,
+  type ProjectSearchItem,
+} from './project-search'
 import { TapeStrip } from './tape-strip'
-
-function Logo() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path d="M3 3H9V9H3V3Z" fill="currentColor" fillOpacity="0.9" />
-      <path d="M11 3H17V9H11V3Z" fill="currentColor" fillOpacity="0.55" />
-      <path d="M3 11H9V17H3V11Z" fill="currentColor" fillOpacity="0.55" />
-      <path
-        d="M11 11H17V17H11V11Z"
-        fill="currentColor"
-        fillOpacity="0.35"
-      />
-    </svg>
-  )
-}
 
 function isActivePath(pathname: string, href: string) {
   if (href === '/films') {
@@ -156,9 +138,15 @@ function NavMenu({
   )
 }
 
-export function Navbar() {
+export function Navbar({
+  searchProjects,
+}: {
+  searchProjects: ProjectSearchItem[]
+}) {
   const pathname = usePathname()
-  const overlaysContent = isActivePath(pathname, '/contact')
+  const overlaysContent =
+    isActivePath(pathname, '/contact') ||
+    isActivePath(pathname, '/films')
 
   return (
     <header
@@ -171,15 +159,22 @@ export function Navbar() {
         className="nav-scrim pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.5rem)]"
       />
       <div className="mx-auto max-w-[1400px]">
-        <div className="nav-floating relative flex items-center justify-between gap-2 rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="nav-floating relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5">
           <Link
             href="/films"
             aria-current={isActivePath(pathname, '/films') ? 'page' : undefined}
-            className="flex min-h-8 min-w-0 flex-1 items-center gap-2 text-[14px] font-medium tracking-tight text-[var(--foreground)] transition-opacity hover:opacity-70 sm:min-h-11 sm:gap-2.5 sm:text-[15px] md:flex-none"
+            className="nav-name-link flex min-h-8 min-w-0 items-center justify-self-start text-[14px] font-medium sm:min-h-11 sm:text-[15px]"
           >
-            <Logo />
-            <span className="truncate">dovydas saudys</span>
+            <TapeStrip
+              variant="marker"
+              color="#069494"
+              className="nav-name-tape relative inline-flex min-w-0 max-w-full items-center px-3 py-2 font-[family-name:var(--font-geist-mono)] font-semibold tracking-[-0.035em] text-white"
+            >
+              <span className="truncate">Dovydas Saudys</span>
+            </TapeStrip>
           </Link>
+
+          <ProjectSearch projects={searchProjects} />
 
           {menuItems.length > 0 && (
             <>
@@ -199,7 +194,7 @@ export function Navbar() {
             </>
           )}
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center justify-self-end gap-1.5 sm:gap-2">
             <ActionLink
               href="/contact"
               variant="tape"

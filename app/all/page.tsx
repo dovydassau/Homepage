@@ -1,13 +1,16 @@
-import { permanentRedirect } from 'next/navigation'
-import {
-  withRedirectQuery,
-  type RedirectSearchParams,
-} from '../works/redirect'
+import type { Metadata } from 'next'
+import { PageShell } from 'app/components/page-shell'
+import { FilmsShowcase } from '../films/films-showcase'
 
-export default async function AllPage({
-  searchParams,
-}: {
-  searchParams: RedirectSearchParams
-}) {
-  permanentRedirect(await withRedirectQuery('/works', searchParams))
+export const metadata: Metadata = {
+  title: 'All work',
+  description: 'All film and assistant work by dovydas saudys.',
+}
+
+export default function AllPage() {
+  return (
+    <PageShell>
+      <FilmsShowcase initialCategory="all" allBasePath="/all" />
+    </PageShell>
+  )
 }

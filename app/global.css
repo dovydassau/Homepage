@@ -79,6 +79,27 @@ html {
   mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
 }
 
+.nav-name-link {
+  border-radius: 0.75rem;
+  outline: none;
+}
+
+.nav-name-link:hover .nav-name-tape {
+  rotate: -0.9deg;
+  scale: 1.02;
+}
+
+.nav-name-link:active .nav-name-tape {
+  rotate: -1.2deg;
+  scale: 0.98;
+}
+
+.nav-name-link:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--accent);
+}
+
 @supports not (backdrop-filter: blur(1px)) {
   .nav-glass,
   .nav-floating {
@@ -627,14 +648,27 @@ html {
 
 .scattered-photos__frame {
   transform: rotate(var(--tile-rotate, 0deg));
-  animation: scattered-photo-enter 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
   filter: saturate(0.85);
   transition:
     translate 300ms cubic-bezier(0.2, 0, 0, 1),
     scale 300ms cubic-bezier(0.2, 0, 0, 1),
     rotate 300ms cubic-bezier(0.2, 0, 0, 1),
     filter 300ms cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 300ms cubic-bezier(0.2, 0, 0, 1);
+    box-shadow 300ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 700ms ease-in-out;
+}
+
+.scattered-photos__frame--loading {
+  opacity: 0;
+}
+
+.scattered-photos__frame--loaded {
+  animation: scattered-photo-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scattered-photos__frame--fading {
+  animation: none;
+  opacity: 0;
 }
 
 .scattered-photos__frame:hover {

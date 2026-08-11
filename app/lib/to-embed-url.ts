@@ -1,3 +1,14 @@
+const DIRECT_VIDEO_EXT = /\.(mp4|webm|ogg|mov|m4v)(?:$|\?)/i
+
+export function isDirectVideoUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim())
+    return DIRECT_VIDEO_EXT.test(parsed.pathname)
+  } catch {
+    return false
+  }
+}
+
 export function toEmbedUrl(url: string): string | null {
   try {
     const parsed = new URL(url.trim())

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function WorksPage() {
   return (
     <PageShell>
-      <FilmsShowcase initialCategory="all" />
+      <FilmsShowcase initialCategory="all" excludeIndependent />
     </PageShell>
   )
 }
