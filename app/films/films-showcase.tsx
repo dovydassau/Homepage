@@ -16,6 +16,8 @@ import {
   DataTableTabular,
 } from '../components/data-table'
 import {
+  categoryBasePath,
+  filmPath,
   films,
   formatFilmNumber,
   getFilmBySlug,
@@ -292,7 +294,10 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
   )
 }
 
-function resolveInitialState(initialSlug?: string) {
+function resolveInitialState(
+  initialSlug?: string,
+  initialCategory: FilmCategory = 'featured',
+) {
   const film = initialSlug ? getFilmBySlug(initialSlug) : undefined
 
   if (film) {
@@ -303,11 +308,13 @@ function resolveInitialState(initialSlug?: string) {
     }
   }
 
-  const firstFeatured = films.find((entry) => entry.category === 'featured')
+  const firstInCategory = films.find(
+    (entry) => entry.category === initialCategory,
+  )
 
   return {
-    category: 'featured' as FilmCategory,
-    selectedId: firstFeatured?.id ?? films[0]?.id ?? '',
+    category: initialCategory,
+    selectedId: firstInCategory?.id ?? films[0]?.id ?? '',
     mobileDetailId: null,
   }
 }
@@ -835,8 +842,16 @@ function updateUrl(path: string) {
   }
 }
 
-export function FilmsShowcase({ initialSlug }: { initialSlug?: string }) {
-  const [initial] = useState(() => resolveInitialState(initialSlug))
+export function FilmsShowcase({
+  initialSlug,
+  initialCategory = 'featured',
+}: {
+  initialSlug?: string
+  initialCategory?: FilmCategory
+}) {
+  const [initial] = useState(() =>
+    resolveInitialState(initialSlug, initialCategory),
+  )
   const [category, setCategory] = useState<FilmCategory>(initial.category)
   const [selectedId, setSelectedId] = useState(initial.selectedId)
   const [mobileDetailId, setMobileDetailId] = useState<string | null>(
@@ -877,12 +892,12 @@ export function FilmsShowcase({ initialSlug }: { initialSlug?: string }) {
     if (options?.openMobileDetail) {
       setMobileDetailId(film.id)
     }
-    updateUrl(`/films/${film.id}`)
+    updateUrl(filmPath(film))
   }
 
   function closeMobileDetail() {
     setMobileDetailId(null)
-    updateUrl('/films')
+    updateUrl(categoryBasePath(category))
   }
 
   function handleCategoryChange(next: FilmCategory) {
@@ -894,22 +909,37 @@ export function FilmsShowcase({ initialSlug }: { initialSlug?: string }) {
 
     if (first) {
       setSelectedId(first.id)
-      updateUrl(`/films/${first.id}`)
+      updateUrl(filmPath(first))
     } else {
-      updateUrl('/films')
+      updateUrl(categoryBasePath(next))
     }
   }
 
   // Keep selection in sync when the user navigates via browser back/forward.
   useEffect(() => {
     const handlePopState = () => {
-      const match = window.location.pathname.match(/^\/films\/([^/]+)/)
-      const film = match ? getFilmBySlug(match[1]) : undefined
+      const match = window.location.pathname.match(
+        /^\/(films|assistant)(?:\/([^/]+))?\/?$/,
+      )
       setMobileDetailId(null)
-      if (film) {
-        setCategory(film.category)
-        setSelectedId(film.id)
+
+      if (!match) return
+
+      const [, section, slug] = match
+      if (slug) {
+        const film = getFilmBySlug(slug)
+        if (film) {
+          setCategory(film.category)
+          setSelectedId(film.id)
+        }
+        return
       }
+
+      const nextCategory: FilmCategory =
+        section === 'assistant' ? 'assistant' : 'featured'
+      const first = films.find((film) => film.category === nextCategory)
+      setCategory(nextCategory)
+      if (first) setSelectedId(first.id)
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)

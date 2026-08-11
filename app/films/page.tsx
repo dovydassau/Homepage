@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function FilmsPage() {
   return (
     <PageShell>
-      <FilmsShowcase />
+      <FilmsShowcase initialCategory="featured" />
     </PageShell>
   )
 }

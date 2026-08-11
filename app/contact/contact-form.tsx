@@ -7,7 +7,7 @@ import { sendContactEmail, type ContactState } from './actions'
 const initialState: ContactState = { status: 'idle', message: '' }
 
 const fieldClass =
-  'mt-1.5 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3.5 py-2.5 text-[15px] text-[var(--foreground)] outline-none transition-colors placeholder:text-[var(--foreground-subtle)] focus:border-[var(--accent)]'
+  'w-full rounded-2xl border border-[var(--border)] bg-[var(--background)]/90 px-4 text-[15px] text-[var(--foreground)] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_10px_30px_-20px_rgba(0,0,0,0.2)] outline-none backdrop-blur-xl transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-[var(--foreground-subtle)] hover:border-[var(--foreground-subtle)] focus:border-[var(--accent)] focus:bg-[var(--background)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_12%,transparent),0_12px_32px_-20px_rgba(0,0,0,0.25)]'
 
 function SubmitButton() {
   const { pending } = useFormStatus()
@@ -16,12 +16,29 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--foreground)] px-5 py-2.5 text-[14px] font-medium text-[var(--background)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[var(--foreground)] px-5 text-[14px] font-medium text-[var(--background)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-200 hover:opacity-85 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending && (
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--background)] border-t-transparent" />
       )}
-      {pending ? 'Sending…' : 'Send message'}
+      <span>{pending ? 'Sending…' : 'Send'}</span>
+      {!pending && (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M2.5 7H11.5M8 3.5L11.5 7L8 10.5"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     </button>
   )
 }
@@ -36,11 +53,14 @@ export function ContactForm() {
 
   if (state.status === 'success') {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-6 sm:p-8">
-        <p className="text-[15px] font-medium text-[var(--foreground)]">
-          Message sent
+      <div className="rounded-3xl bg-[var(--background)]/90 p-7 text-center shadow-[0_2px_6px_rgba(0,0,0,0.04),0_24px_70px_-30px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:p-9">
+        <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[var(--foreground)] text-[var(--background)]">
+          ✓
+        </span>
+        <p className="mt-4 text-[16px] font-medium text-[var(--foreground)]">
+          Letter sent
         </p>
-        <p className="mt-1.5 text-[14px] text-[var(--foreground-muted)]">
+        <p className="mt-1 text-[14px] text-[var(--foreground-muted)]">
           {state.message}
         </p>
       </div>
@@ -48,12 +68,9 @@ export function ContactForm() {
   }
 
   return (
-    <form action={formAction} className="space-y-4" noValidate>
+    <form action={formAction} className="space-y-3" noValidate>
       <div>
-        <label
-          htmlFor="name"
-          className="text-[13px] font-medium text-[var(--foreground-muted)]"
-        >
+        <label htmlFor="name" className="sr-only">
           Name
         </label>
         <input
@@ -63,7 +80,7 @@ export function ContactForm() {
           autoComplete="name"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className={fieldClass}
+          className={`${fieldClass} h-12`}
           placeholder="Your name"
         />
         {state.fieldErrors?.name && (
@@ -74,34 +91,7 @@ export function ContactForm() {
       </div>
 
       <div>
-        <label
-          htmlFor="email"
-          className="text-[13px] font-medium text-[var(--foreground-muted)]"
-        >
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className={fieldClass}
-          placeholder="you@email.com"
-        />
-        {state.fieldErrors?.email && (
-          <p className="mt-1 text-[12px] text-[var(--accent)]">
-            {state.fieldErrors.email}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label
-          htmlFor="message"
-          className="text-[13px] font-medium text-[var(--foreground-muted)]"
-        >
+        <label htmlFor="message" className="sr-only">
           Message
         </label>
         <textarea
@@ -110,7 +100,7 @@ export function ContactForm() {
           rows={5}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          className={`${fieldClass} resize-y`}
+          className={`${fieldClass} min-h-32 resize-none py-3.5`}
           placeholder="Tell me about your project…"
         />
         {state.fieldErrors?.message && (
@@ -120,18 +110,41 @@ export function ContactForm() {
         )}
       </div>
 
+      <div className="flex gap-2.5">
+        <div className="min-w-0 flex-1">
+          <label htmlFor="email" className="sr-only">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={`${fieldClass} h-12`}
+            placeholder="Email address"
+          />
+          {state.fieldErrors?.email && (
+            <p className="mt-1 text-left text-[12px] text-[var(--accent)]">
+              {state.fieldErrors.email}
+            </p>
+          )}
+        </div>
+        <SubmitButton />
+      </div>
+
       {/* Honeypot field, hidden from humans. */}
       <div aria-hidden className="absolute left-[-9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="company">Company</label>
         <input id="company" name="company" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 pt-1">
-        <SubmitButton />
-        {state.status === 'error' && !state.fieldErrors && (
-          <p className="text-[13px] text-[var(--accent)]">{state.message}</p>
-        )}
-      </div>
+      {state.status === 'error' && !state.fieldErrors && (
+        <p className="text-center text-[13px] text-[var(--accent)]">
+          {state.message}
+        </p>
+      )}
     </form>
   )
 }

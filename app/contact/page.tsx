@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { PageShell } from 'app/components/page-shell'
 import { ContactForm } from './contact-form'
+import { ScatteredPhotos } from './scattered-photos'
 
 export const metadata: Metadata = {
   title: 'Contact',
@@ -9,18 +9,26 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <PageShell>
-      <h1 className="text-[clamp(1.75rem,6vw,3rem)] font-medium leading-tight tracking-[-0.03em] text-[var(--foreground)]">
-        Contact
-      </h1>
-      <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--foreground-muted)] sm:mt-4 sm:text-base">
-        For collaborations, commissions, or general inquiries — send a message
-        and I&apos;ll get back to you.
-      </p>
+    <section className="contact-stage page-shell relative isolate flex min-h-[calc(100svh-5rem)] w-full items-center justify-center overflow-hidden py-10 sm:min-h-[calc(100svh-6rem)] sm:py-14">
+      <ScatteredPhotos />
+      <div aria-hidden className="contact-stage__focus absolute inset-0 z-10" />
 
-      <div className="mt-8 max-w-lg sm:mt-10">
-        <ContactForm />
+      <div className="relative z-20 w-full max-w-[540px] text-center">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--foreground-subtle)]">
+          Berlin · available worldwide
+        </p>
+        <h1 className="text-balance text-[clamp(2.4rem,7vw,4.5rem)] font-medium leading-[0.98] tracking-[-0.045em] text-[var(--foreground)]">
+          Send a letter
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-pretty text-[15px] leading-relaxed text-[var(--foreground-muted)] sm:text-base">
+          Tell me about your project, the place, the people—or just the first
+          spark of an idea.
+        </p>
+
+        <div className="mt-7 text-left sm:mt-8">
+          <ContactForm />
+        </div>
       </div>
-    </PageShell>
+    </section>
   )
 }
