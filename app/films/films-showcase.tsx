@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type Ref } from 'react'
+import { createPortal } from 'react-dom'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 import {
   DataTable,
@@ -21,6 +22,7 @@ import {
   isFilmInactive,
   toEmbedUrl,
   type ExtraContent,
+  type ExtraImageInput,
   type Film,
   type FilmCategory,
 } from './films-data'
@@ -445,8 +447,300 @@ function FilmDetail({ film, index }: { film: Film; index: number }) {
   )
 }
 
+function ImageLoadingOverlay({ loaded }: { loaded: boolean }) {
+  return (
+    <>
+      <div
+        className={`preview-shimmer absolute inset-0 transition-opacity duration-300 ${
+          loaded ? 'opacity-0' : 'opacity-100'
+        }`}
+      />
+      <div
+        className={`absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-[var(--surface-hover)] transition-opacity duration-200 ${
+          loaded ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        <div className="preview-progress-bar h-full w-1/3 rounded-full bg-[var(--accent)]" />
+      </div>
+    </>
+  )
+}
+
+function markImageLoaded(
+  node: HTMLImageElement | null,
+  loaded: boolean,
+  onLoad: () => void,
+) {
+  if (node?.complete && node.naturalWidth > 0 && !loaded) {
+    // Handle already-cached images (no load event fires).
+    setTimeout(onLoad, 0)
+  }
+}
+
+function BtsImageCaption({ description }: { description: string }) {
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 z-[9] h-24 w-36 sm:h-28 sm:w-44"
+        style={{
+          background:
+            'radial-gradient(ellipse 100% 100% at 0% 100%, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 55%, transparent 72%)',
+        }}
+      />
+      <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[calc(100%-3rem)]">
+        <span className="inline-block rounded-md border border-white/10 bg-black/30 px-2 py-1 text-[11px] font-medium leading-snug tracking-wide text-white/95 shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:text-[12px]">
+          {description}
+        </span>
+      </div>
+    </>
+  )
+}
+
+function ImageLightbox({
+  images,
+  title,
+  openIndex,
+  onClose,
+  onChange,
+}: {
+  images: ExtraImageInput[]
+  title: string
+  openIndex: number | null
+  onClose: () => void
+  onChange: (index: number) => void
+}) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    if (openIndex === null) return
+    setLoaded(false)
+  }, [openIndex])
+
+  useEffect(() => {
+    if (openIndex === null) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key === 'ArrowLeft' && openIndex > 0) {
+        onChange(openIndex - 1)
+      }
+      if (event.key === 'ArrowRight' && openIndex < images.length - 1) {
+        onChange(openIndex + 1)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [images.length, onChange, onClose, openIndex])
+
+  if (!mounted || openIndex === null) return null
+
+  const hasMultiple = images.length > 1
+  const currentImage = images[openIndex]
+  const currentDescription = currentImage.description?.trim()
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${title} image ${openIndex + 1} of ${images.length}`}
+      className="image-lightbox-enter fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/88 backdrop-blur-sm" />
+
+      <button
+        ref={closeRef}
+        type="button"
+        onClick={onClose}
+        aria-label="Close image"
+        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path
+            d="M1 1L13 13M13 1L1 13"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+
+      {hasMultiple && (
+        <div className="absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[12px] font-medium tracking-wide text-white/80 backdrop-blur-sm">
+          {openIndex + 1} / {images.length}
+        </div>
+      )}
+
+      {hasMultiple && openIndex > 0 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onChange(openIndex - 1)
+          }}
+          aria-label="Previous image"
+          className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white sm:left-6"
+        >
+          <Chevron className="rotate-180" />
+        </button>
+      )}
+
+      {hasMultiple && openIndex < images.length - 1 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onChange(openIndex + 1)
+          }}
+          aria-label="Next image"
+          className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white/90 backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white sm:right-6"
+        >
+          <Chevron />
+        </button>
+      )}
+
+      <div
+        className="relative z-[1] min-h-[12rem] min-w-[min(100%,20rem)] max-h-[calc(100vh-4rem)] max-w-[min(100%,72rem)] overflow-hidden rounded-xl border border-white/10 bg-[var(--surface-muted)]/20"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ImageLoadingOverlay loaded={loaded} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={currentImage.src}
+          src={currentImage.src}
+          alt={
+            currentDescription
+              ? `${title} — ${currentDescription}`
+              : `${title} ${openIndex + 1}`
+          }
+          onLoad={() => setLoaded(true)}
+          ref={(node) => markImageLoaded(node, loaded, () => setLoaded(true))}
+          className={`max-h-[calc(100vh-4rem)] w-auto max-w-full rounded-xl object-contain shadow-2xl transition-opacity duration-300 ease-out ${
+            loaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        {currentDescription && (
+          <BtsImageCaption description={currentDescription} />
+        )}
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function BtsThumbnail({
+  image,
+  title,
+  index,
+  onOpen,
+}: {
+  image: ExtraImageInput
+  title: string
+  index: number
+  onOpen: () => void
+}) {
+  const [loaded, setLoaded] = useState(false)
+  const description = image.description?.trim()
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={
+        description
+          ? `Open ${title} image ${index + 1}: ${description}`
+          : `Open ${title} image ${index + 1}`
+      }
+      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] text-left transition-[border-color,transform] duration-200 hover:border-[var(--foreground-subtle)] active:scale-[0.99] sm:rounded-2xl"
+    >
+      <ImageLoadingOverlay loaded={loaded} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.src}
+        alt={
+          description ? `${title} — ${description}` : `${title} ${index + 1}`
+        }
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        ref={(node) => markImageLoaded(node, loaded, () => setLoaded(true))}
+        className={`aspect-[4/3] w-full object-cover transition-[opacity,transform] duration-300 group-hover:scale-[1.02] ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+      {description && <BtsImageCaption description={description} />}
+      <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/10" />
+      <span className="pointer-events-none absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white/90 opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <path
+            d="M1.5 4.5V1.5H4.5M7.5 1.5H10.5V4.5M1.5 7.5V10.5H4.5M7.5 10.5H10.5V7.5"
+            stroke="currentColor"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
+function ExpandableImages({
+  images,
+  title,
+}: {
+  images: ExtraImageInput[]
+  title: string
+}) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  return (
+    <>
+      <div
+        className={`mt-3 grid gap-3 ${
+          images.length > 1 ? 'grid-cols-2' : ''
+        }`}
+      >
+        {images.map((image, index) => (
+          <BtsThumbnail
+            key={image.src}
+            image={image}
+            title={title}
+            index={index}
+            onOpen={() => setOpenIndex(index)}
+          />
+        ))}
+      </div>
+
+      <ImageLightbox
+        images={images}
+        title={title}
+        openIndex={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onChange={setOpenIndex}
+      />
+    </>
+  )
+}
+
 function ExtraContentItem({ item }: { item: ExtraContent }) {
-  const embedUrl = toEmbedUrl(item.videoUrl)
+  const embedUrl = item.videoUrl ? toEmbedUrl(item.videoUrl) : null
+  const images = item.imageContents ?? []
 
   return (
     <div>
@@ -457,6 +751,9 @@ function ExtraContentItem({ item }: { item: ExtraContent }) {
         <p className="mt-1 text-[13px] leading-relaxed text-[var(--foreground-muted)]">
           {item.description}
         </p>
+      )}
+      {images.length > 0 && (
+        <ExpandableImages images={images} title={item.title} />
       )}
       {embedUrl && (
         <div className="mt-3 aspect-video w-full overflow-hidden rounded-xl border border-[var(--border)] bg-black sm:rounded-2xl">
@@ -795,9 +1092,19 @@ export function FilmsShowcase({ initialSlug }: { initialSlug?: string }) {
               }`}
             >
               <div
-                className={`aspect-video w-20 shrink-0 rounded-lg border border-[var(--border)] ${isInactive ? 'opacity-40' : ''}`}
+                className={`relative aspect-video w-20 shrink-0 overflow-hidden rounded-lg border border-[var(--border)] ${isInactive ? 'opacity-40' : ''}`}
                 style={{ backgroundImage: film.gradient }}
-              />
+              >
+                {film.previewImg && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={film.previewImg}
+                    alt=""
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                )}
+              </div>
               <div className="min-w-0 flex-1">
                 <div
                   className={`truncate text-[16px] tracking-[-0.012em] ${
