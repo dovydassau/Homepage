@@ -16,12 +16,19 @@ import {
   DataTableTabular,
 } from '../components/data-table'
 import {
+  ImageLoadingOverlay,
+  markImageLoaded,
+} from '../components/image-loading-overlay'
+import { useProducerWelcome } from '../components/producer-welcome-context'
+import { TapeStrip } from '../components/tape-strip'
+import {
   categoryBasePath,
   filmPath,
   films,
   formatFilmNumber,
   getFilmBySlug,
   isFilmInactive,
+  isFilmVisibleInAll,
   toEmbedUrl,
   type ExtraContent,
   type ExtraImageInput,
@@ -29,7 +36,13 @@ import {
   type FilmCategory,
 } from './films-data'
 
+type ShowcaseCategory = FilmCategory | 'all'
+
 type PreviewLayer = { id: number; src: string; loaded: boolean }
+
+function compareFilmsNewestFirst(first: Film, second: Film) {
+  return second.date.getTime() - first.date.getTime()
+}
 
 function MousePreview({
   src,
@@ -188,7 +201,13 @@ function MousePreview({
 type FlyRect = { left: number; top: number; width: number; height: number }
 type FlyState = { token: number; src: string; start: FlyRect }
 
-// On list click, the hover card flies onto the detail media, then fades out.
+const FLY_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
+const FLY_DURATION_MS = 580
+const FLY_HANDOFF_MS = 220
+
+// On list click, the hover card flies onto the detail media, then dissolves.
+// Handoff is cover-then-reveal (never a crossfade) so identical stills don't
+// dip through the page background at mid-opacity.
 function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
   const ref = useRef<HTMLDivElement>(null)
   const onDoneRef = useRef(onDone)
@@ -199,7 +218,8 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
     if (!el) return
     const done = () => onDoneRef.current()
     let cancelled = false
-    let settleTimer: ReturnType<typeof setTimeout>
+    let handedOff = false
+    let settleTimer: ReturnType<typeof setTimeout> | undefined
     let targetEl: HTMLElement | null = null
 
     const restoreTarget = () => {
@@ -208,21 +228,48 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
       targetEl.style.opacity = ''
     }
 
-    el.style.transform = `translate(${fly.start.left}px, ${fly.start.top}px)`
-    el.style.width = `${fly.start.width}px`
-    el.style.height = `${fly.start.height}px`
-    el.style.opacity = '1'
+    const applyRect = (rect: FlyRect, radius: string) => {
+      el.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0)`
+      el.style.width = `${rect.width}px`
+      el.style.height = `${rect.height}px`
+      el.style.borderRadius = radius
+    }
 
-    const fadeOut = () => {
-      if (cancelled) return
-      // Reveal the media underneath as the card dissolves over it.
+    // Match the hover card's resting look.
+    applyRect(fly.start, '0.75rem')
+    el.style.opacity = '1'
+    el.style.boxShadow =
+      '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px color-mix(in srgb, var(--border) 80%, transparent)'
+
+    const handoff = () => {
+      if (cancelled || handedOff) return
+      handedOff = true
+      clearTimeout(settleTimer)
+
+      // Re-measure in case the detail panel settled during flight.
       if (targetEl) {
-        targetEl.style.transition = 'opacity 0.4s ease-out'
+        const latest = targetEl.getBoundingClientRect()
+        el.style.transition = 'none'
+        applyRect(
+          {
+            left: latest.left,
+            top: latest.top,
+            width: latest.width,
+            height: latest.height,
+          },
+          '1rem',
+        )
+        // Show the destination at full opacity while still fully covered by
+        // the fly card — avoids the ±50% dip of a simultaneous crossfade.
+        targetEl.style.transition = 'none'
         targetEl.style.opacity = '1'
+        void el.offsetWidth
       }
-      el.style.transition = 'opacity 0.4s ease-out'
+
+      el.style.transition = `opacity ${FLY_HANDOFF_MS}ms ease-out, box-shadow ${FLY_HANDOFF_MS}ms ease-out`
       el.style.opacity = '0'
-      settleTimer = setTimeout(done, 420)
+      el.style.boxShadow = '0 0 0 0 transparent'
+      settleTimer = setTimeout(done, FLY_HANDOFF_MS + 20)
     }
 
     let tries = 0
@@ -246,26 +293,40 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
         return
       }
 
-      // Hide the media until the card arrives on top of it.
+      // Keep destination hidden until handoff — the fly card is the only
+      // visible surface during the move.
       targetEl.style.transition = 'none'
       targetEl.style.opacity = '0'
 
       const target = targetEl.getBoundingClientRect()
       void el.offsetWidth
-      const ease = 'cubic-bezier(0.22, 1, 0.36, 1)'
-      el.style.transition = `transform 0.55s ${ease}, width 0.55s ${ease}, height 0.55s ${ease}`
-      el.style.transform = `translate(${target.left}px, ${target.top}px)`
-      el.style.width = `${target.width}px`
-      el.style.height = `${target.height}px`
+
+      el.style.transition = [
+        `transform ${FLY_DURATION_MS}ms ${FLY_EASE}`,
+        `width ${FLY_DURATION_MS}ms ${FLY_EASE}`,
+        `height ${FLY_DURATION_MS}ms ${FLY_EASE}`,
+        `border-radius ${FLY_DURATION_MS}ms ${FLY_EASE}`,
+        `box-shadow ${FLY_DURATION_MS}ms ${FLY_EASE}`,
+      ].join(', ')
+      applyRect(
+        {
+          left: target.left,
+          top: target.top,
+          width: target.width,
+          height: target.height,
+        },
+        '1rem',
+      )
+      el.style.boxShadow =
+        '0 8px 24px -12px rgba(0, 0, 0, 0.18), 0 0 0 1px color-mix(in srgb, var(--border) 90%, transparent)'
 
       const handleEnd = (event: TransitionEvent) => {
         if (event.propertyName !== 'transform') return
         el.removeEventListener('transitionend', handleEnd)
-        fadeOut()
+        handoff()
       }
       el.addEventListener('transitionend', handleEnd)
-      // Fallback in case transitionend doesn't fire.
-      settleTimer = setTimeout(fadeOut, 650)
+      settleTimer = setTimeout(handoff, FLY_DURATION_MS + 40)
     }
 
     const raf = requestAnimationFrame(() =>
@@ -286,7 +347,7 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
     <div
       aria-hidden
       ref={ref}
-      className="pointer-events-none fixed left-0 top-0 z-50 hidden overflow-hidden rounded-2xl border border-[var(--border)] shadow-2xl will-change-transform lg:block"
+      className="pointer-events-none fixed left-0 top-0 z-50 hidden overflow-hidden border border-[var(--border)] bg-[var(--surface-muted)] will-change-transform lg:block"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={fly.src} alt="" className="h-full w-full object-cover" />
@@ -296,21 +357,26 @@ function FlyOverlay({ fly, onDone }: { fly: FlyState; onDone: () => void }) {
 
 function resolveInitialState(
   initialSlug?: string,
-  initialCategory: FilmCategory = 'featured',
-) {
+  initialCategory: ShowcaseCategory = 'featured',
+): {
+  category: ShowcaseCategory
+  selectedId: string
+  mobileDetailId: string | null
+} {
   const film = initialSlug ? getFilmBySlug(initialSlug) : undefined
 
   if (film) {
     return {
-      category: film.category,
+      category: initialCategory === 'all' ? 'all' : film.category,
       selectedId: film.id,
       mobileDetailId: initialSlug ? film.id : null,
     }
   }
 
-  const firstInCategory = films.find(
-    (entry) => entry.category === initialCategory,
-  )
+  const firstInCategory =
+    initialCategory === 'all'
+      ? films.filter(isFilmVisibleInAll).sort(compareFilmsNewestFirst)[0]
+      : films.find((entry) => entry.category === initialCategory)
 
   return {
     category: initialCategory,
@@ -319,23 +385,69 @@ function resolveInitialState(
   }
 }
 
-function FilmTag({ tag }: { tag: string }) {
+function FilmTag({
+  tag,
+  overlay,
+}: {
+  tag: string
+  overlay?: 'desktop' | 'mobile'
+}) {
+  const placement =
+    overlay === 'desktop'
+      ? 'pointer-events-none absolute right-[1.5rem] top-1/2 z-10 flex -translate-y-1/2'
+      : overlay === 'mobile'
+        ? 'pointer-events-none absolute right-0 top-1/2 z-10 flex -translate-y-1/2'
+        : 'relative inline-flex'
+
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--background)]/90 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--foreground-muted)] backdrop-blur-sm">
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" />
+    <TapeStrip
+      variant="marker"
+      color="#FF5C00"
+      className={`${placement} shrink-0 items-center px-2.5 py-1.5 font-[family-name:var(--font-geist-mono)] text-[10px] font-black uppercase leading-none tracking-[-0.035em] text-black`}
+    >
       {tag}
-    </span>
+    </TapeStrip>
   )
 }
 
-function FilmPreview({ film, index }: { film: Film; index: number }) {
+function WorkedTogetherNote({ compact = false }: { compact?: boolean }) {
+  return (
+    <TapeStrip
+      variant="marker"
+      aria-label="We worked on this together"
+      className={`pointer-events-none whitespace-nowrap font-[family-name:var(--font-geist-mono)] font-black uppercase text-black ${
+        compact
+          ? 'relative mt-1.5 inline-flex px-3.5 py-2 text-[11px] leading-none tracking-[-0.035em]'
+          : 'absolute left-[1.5rem] top-1/2 z-10 flex -translate-y-1/2 px-4 py-2 text-[12px] leading-none tracking-[-0.045em]'
+      }`}
+    >
+      we worked on this together
+    </TapeStrip>
+  )
+}
+
+function FilmPreview({
+  film,
+  index,
+  deferReveal = false,
+}: {
+  film: Film
+  index: number
+  // When a fly animation is covering the slot, stay hidden until FlyOverlay
+  // fades this in — same pattern as the video iframe target.
+  deferReveal?: boolean
+}) {
+  // Latch so we don't re-run detail-media-reveal after the fly finishes.
+  const [skippedCssReveal] = useState(deferReveal)
   const embedUrl = film.videoUrl ? toEmbedUrl(film.videoUrl) : null
+  const hideUntilFlySettles = deferReveal
 
   if (embedUrl) {
     return (
       <div
         data-detail-media
         className="relative aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-black"
+        style={hideUntilFlySettles ? { opacity: 0 } : undefined}
       >
         {film.tag && (
           <div className="absolute right-3 top-3 z-10">
@@ -355,11 +467,48 @@ function FilmPreview({ film, index }: { film: Film; index: number }) {
     )
   }
 
+  if (film.previewImg) {
+    return (
+      <div
+        data-detail-media
+        className={[
+          'relative aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)]',
+          // Skip the CSS reveal while flying — it would show this same image
+          // under the fly card. FlyOverlay handles the delayed fade-in.
+          skippedCssReveal ? '' : 'detail-media-reveal',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={hideUntilFlySettles ? { opacity: 0 } : undefined}
+      >
+        {film.tag && (
+          <div className="absolute right-3 top-3 z-10">
+            <FilmTag tag={film.tag} />
+          </div>
+        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={film.previewImg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+    )
+  }
+
   return (
     <div
       data-detail-media
-      className="detail-media-reveal relative aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)]"
-      style={{ backgroundImage: film.gradient }}
+      className={[
+        'relative aspect-video w-full overflow-hidden rounded-2xl border border-[var(--border)]',
+        skippedCssReveal ? '' : 'detail-media-reveal',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={{
+        backgroundImage: film.gradient,
+        ...(hideUntilFlySettles ? { opacity: 0 } : null),
+      }}
     >
       {film.tag && (
         <div className="absolute right-3 top-3 z-10">
@@ -395,10 +544,22 @@ function CreditRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function FilmDetail({ film, index }: { film: Film; index: number }) {
+export function FilmDetail({
+  film,
+  index,
+  deferMediaReveal = false,
+}: {
+  film: Film
+  index: number
+  deferMediaReveal?: boolean
+}) {
   return (
     <div>
-      <FilmPreview film={film} index={index} />
+      <FilmPreview
+        film={film}
+        index={index}
+        deferReveal={deferMediaReveal}
+      />
       <div
         className="detail-rise mt-4 flex flex-wrap items-center gap-2.5"
         style={{ animationDelay: '0.1s' }}
@@ -452,36 +613,6 @@ function FilmDetail({ film, index }: { film: Film; index: number }) {
       )}
     </div>
   )
-}
-
-function ImageLoadingOverlay({ loaded }: { loaded: boolean }) {
-  return (
-    <>
-      <div
-        className={`preview-shimmer absolute inset-0 transition-opacity duration-300 ${
-          loaded ? 'opacity-0' : 'opacity-100'
-        }`}
-      />
-      <div
-        className={`absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-[var(--surface-hover)] transition-opacity duration-200 ${
-          loaded ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        <div className="preview-progress-bar h-full w-1/3 rounded-full bg-[var(--accent)]" />
-      </div>
-    </>
-  )
-}
-
-function markImageLoaded(
-  node: HTMLImageElement | null,
-  loaded: boolean,
-  onLoad: () => void,
-) {
-  if (node?.complete && node.naturalWidth > 0 && !loaded) {
-    // Handle already-cached images (no load event fires).
-    setTimeout(onLoad, 0)
-  }
 }
 
 function BtsImageCaption({ description }: { description: string }) {
@@ -804,11 +935,13 @@ const categories: { id: FilmCategory; label: string }[] = [
   { id: 'assistant', label: 'Assistant' },
 ]
 
+const emptyWorkedIn: readonly string[] = []
+
 function CategoryToggle({
   value,
   onChange,
 }: {
-  value: FilmCategory
+  value: ShowcaseCategory
   onChange: (next: FilmCategory) => void
 }) {
   return (
@@ -845,14 +978,16 @@ function updateUrl(path: string) {
 export function FilmsShowcase({
   initialSlug,
   initialCategory = 'featured',
+  workedIn,
 }: {
   initialSlug?: string
-  initialCategory?: FilmCategory
+  initialCategory?: ShowcaseCategory
+  workedIn?: readonly string[]
 }) {
   const [initial] = useState(() =>
     resolveInitialState(initialSlug, initialCategory),
   )
-  const [category, setCategory] = useState<FilmCategory>(initial.category)
+  const [category, setCategory] = useState<ShowcaseCategory>(initial.category)
   const [selectedId, setSelectedId] = useState(initial.selectedId)
   const [mobileDetailId, setMobileDetailId] = useState<string | null>(
     initial.mobileDetailId,
@@ -861,10 +996,24 @@ export function FilmsShowcase({
   const [fly, setFly] = useState<FlyState | null>(null)
   const previewCardRef = useRef<HTMLDivElement>(null)
   const flyToken = useRef(0)
+  const { invite: welcomeInvite } = useProducerWelcome()
+  const activeWorkedIn =
+    workedIn ?? welcomeInvite?.workedIn ?? emptyWorkedIn
 
-  const visibleFilms = useMemo(
-    () => films.filter((film) => film.category === category),
-    [category],
+  const visibleFilms = useMemo(() => {
+    const filteredFilms = films.filter((film) =>
+      category === 'all'
+        ? isFilmVisibleInAll(film)
+        : film.category === category,
+    )
+
+    return category === 'all'
+      ? filteredFilms.sort(compareFilmsNewestFirst)
+      : filteredFilms
+  }, [category])
+  const workedInSet = useMemo(
+    () => new Set(activeWorkedIn),
+    [activeWorkedIn],
   )
 
   function launchFly(src: string) {
@@ -887,17 +1036,19 @@ export function FilmsShowcase({
   }
 
   function selectFilm(film: Film, options?: { openMobileDetail?: boolean }) {
-    setCategory(film.category)
+    if (category !== 'all') {
+      setCategory(film.category)
+    }
     setSelectedId(film.id)
     if (options?.openMobileDetail) {
       setMobileDetailId(film.id)
     }
-    updateUrl(filmPath(film))
+    updateUrl(category === 'all' ? `/works/${film.id}` : filmPath(film))
   }
 
   function closeMobileDetail() {
     setMobileDetailId(null)
-    updateUrl(categoryBasePath(category))
+    updateUrl(category === 'all' ? '/works' : categoryBasePath(category))
   }
 
   function handleCategoryChange(next: FilmCategory) {
@@ -919,7 +1070,7 @@ export function FilmsShowcase({
   useEffect(() => {
     const handlePopState = () => {
       const match = window.location.pathname.match(
-        /^\/(films|assistant)(?:\/([^/]+))?\/?$/,
+        /^\/(films|assistant|works)(?:\/([^/]+))?\/?$/,
       )
       setMobileDetailId(null)
 
@@ -929,15 +1080,23 @@ export function FilmsShowcase({
       if (slug) {
         const film = getFilmBySlug(slug)
         if (film) {
-          setCategory(film.category)
+          setCategory(section === 'works' ? 'all' : film.category)
           setSelectedId(film.id)
         }
         return
       }
 
-      const nextCategory: FilmCategory =
-        section === 'assistant' ? 'assistant' : 'featured'
-      const first = films.find((film) => film.category === nextCategory)
+      const nextCategory: ShowcaseCategory =
+        section === 'works'
+          ? 'all'
+          : section === 'assistant'
+            ? 'assistant'
+            : 'featured'
+      const first = films.find((film) =>
+        nextCategory === 'all'
+          ? isFilmVisibleInAll(film)
+          : film.category === nextCategory,
+      )
       setCategory(nextCategory)
       if (first) setSelectedId(first.id)
     }
@@ -952,7 +1111,8 @@ export function FilmsShowcase({
 
   const mobileFilm = mobileDetailId ? getFilmBySlug(mobileDetailId) : null
   const mobileIndex =
-    mobileFilm && mobileFilm.category === category
+    mobileFilm &&
+    (category === 'all' || mobileFilm.category === category)
       ? visibleFilms.findIndex((film) => film.id === mobileDetailId)
       : mobileFilm
         ? films
@@ -990,6 +1150,7 @@ export function FilmsShowcase({
                 key={selectedFilm.id}
                 film={selectedFilm}
                 index={selectedIndex}
+                deferMediaReveal={fly !== null}
               />
             )}
           </div>
@@ -1007,9 +1168,11 @@ export function FilmsShowcase({
             <div className="mb-4 flex items-center justify-between">
               <span className="text-[13px] text-[var(--foreground-muted)]">
                 {visibleFilms.length}{' '}
-                {category === 'featured'
-                  ? 'featured films'
-                  : 'assistant credits'}
+                {category === 'all'
+                  ? 'projects'
+                  : category === 'featured'
+                    ? 'featured films'
+                    : 'assistant credits'}
               </span>
               <CategoryToggle value={category} onChange={handleCategoryChange} />
             </div>
@@ -1026,6 +1189,7 @@ export function FilmsShowcase({
             {visibleFilms.map((film, index) => {
               const isSelected = selectedId === film.id
               const isInactive = isFilmInactive(film)
+              const isSharedProject = workedInSet.has(film.id)
 
               return (
                 <DataTableRow
@@ -1044,7 +1208,13 @@ export function FilmsShowcase({
                   }
                   onMouseLeave={() => setPreviewSrc(null)}
                 >
-                  <DataTablePrimaryCell>
+                  <DataTablePrimaryCell
+                    className={
+                      film.category === 'featured' && film.tag
+                        ? 'relative overflow-visible'
+                        : undefined
+                    }
+                  >
                     <DataTablePrimaryLine>
                       <DataTableIndex>
                         {formatFilmNumber(index)}
@@ -1064,17 +1234,16 @@ export function FilmsShowcase({
                       </DataTableSubtext>
                     )}
                     {film.category === 'featured' && film.tag && (
-                      <DataTableSubtext inline>
-                        <FilmTag tag={film.tag} />
-                      </DataTableSubtext>
+                      <FilmTag tag={film.tag} overlay="desktop" />
                     )}
                   </DataTablePrimaryCell>
                   <DataTableCell
                     responsive="hide-narrow"
-                    truncate
+                    className={isSharedProject ? 'relative overflow-visible' : undefined}
                     muted={isIndependent(film.production)}
                   >
-                    {film.production}
+                    <span className="block">{film.production}</span>
+                    {isSharedProject && <WorkedTogetherNote />}
                   </DataTableCell>
                   <DataTableCell truncate>{film.role}</DataTableCell>
                   <DataTableCell align="right">
@@ -1101,13 +1270,18 @@ export function FilmsShowcase({
           <div className="mb-4 flex items-center justify-between">
             <span className="text-[13px] text-[var(--foreground-muted)]">
               {visibleFilms.length}{' '}
-              {category === 'featured' ? 'films' : 'credits'}
+              {category === 'all'
+                ? 'projects'
+                : category === 'featured'
+                  ? 'films'
+                  : 'credits'}
             </span>
             <CategoryToggle value={category} onChange={handleCategoryChange} />
           </div>
 
           {visibleFilms.map((film, index) => {
             const isInactive = isFilmInactive(film)
+            const isSharedProject = workedInSet.has(film.id)
 
             return (
             <button
@@ -1135,9 +1309,9 @@ export function FilmsShowcase({
                   />
                 )}
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="relative min-w-0 flex-1">
                 <div
-                  className={`truncate text-[16px] tracking-[-0.012em] ${
+                  className={`relative truncate text-[16px] tracking-[-0.012em] ${
                     isInactive
                       ? 'text-[var(--foreground-subtle)]'
                       : 'text-[var(--foreground)]'
@@ -1148,13 +1322,14 @@ export function FilmsShowcase({
                   </span>{' '}
                   {film.title}
                 </div>
+                {film.tag && <FilmTag tag={film.tag} overlay="mobile" />}
                 <div className="mt-0.5 flex items-center gap-2 text-[13px] text-[var(--foreground-muted)]">
-                  {film.tag && <FilmTag tag={film.tag} />}
                   <span className="truncate">
                     {film.type ? `${film.type} · ` : ''}
                     {film.role} · {film.year}
                   </span>
                 </div>
+                {isSharedProject && <WorkedTogetherNote compact />}
               </div>
               <Chevron className="shrink-0 text-[var(--foreground-subtle)] transition-transform group-active:translate-x-0.5" />
             </button>
@@ -1176,7 +1351,7 @@ export function FilmsShowcase({
             className="group -mx-4 mb-2 flex min-h-[60px] w-[calc(100%+2rem)] items-center gap-1.5 border-b border-[var(--border)] px-4 text-[17px] font-medium text-[var(--accent)] transition-colors active:bg-[var(--surface-muted)]"
           >
             <Chevron className="rotate-180 transition-transform group-hover:-translate-x-0.5 group-active:-translate-x-1" />
-            Films
+            {category === 'all' ? 'Work' : 'Films'}
           </button>
 
           {mobileFilm && mobileIndex >= 0 && (

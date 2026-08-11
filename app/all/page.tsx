@@ -1,0 +1,13 @@
+import { permanentRedirect } from 'next/navigation'
+import {
+  withRedirectQuery,
+  type RedirectSearchParams,
+} from '../works/redirect'
+
+export default async function AllPage({
+  searchParams,
+}: {
+  searchParams: RedirectSearchParams
+}) {
+  permanentRedirect(await withRedirectQuery('/works', searchParams))
+}
