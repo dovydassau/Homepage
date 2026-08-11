@@ -1,8 +1,11 @@
 import './global.css'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Navbar } from './components/nav'
+import { GlobalProducerWelcome } from './components/global-producer-welcome'
+import { ProducerWelcomeProvider } from './components/producer-welcome-context'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { baseUrl } from './sitemap'
@@ -51,7 +54,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-[var(--background)] font-[family-name:var(--font-geist-sans)] text-[var(--foreground)] antialiased">
         <main className="flex min-h-screen flex-col">
           <Navbar />
-          <div className="flex-1">{children}</div>
+          <ProducerWelcomeProvider>
+            <Suspense fallback={null}>
+              <GlobalProducerWelcome />
+            </Suspense>
+            <div className="flex-1">{children}</div>
+          </ProducerWelcomeProvider>
           <Analytics />
           <SpeedInsights />
         </main>

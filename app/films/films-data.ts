@@ -62,6 +62,10 @@ export function isFilmInactive(film: Film): boolean {
   return film.date < TEMP_VIDEO_CUTOFF
 }
 
+export function isFilmVisibleInAll(film: Film): boolean {
+  return film.tag?.toLowerCase() !== 'upcoming' && !isFilmInactive(film)
+}
+
 const gradients = [
   'linear-gradient(135deg, #8fb4d6 0%, #c9a86f 55%, #6d7a52 100%)',
   'linear-gradient(135deg, #2b3a55 0%, #4a6d8c 60%, #a7c5d8 100%)',
@@ -174,6 +178,7 @@ const dopEntries: DopEntry[] = [
     director: 'Raya van der Laan',
     date: '2026-12',
     notes: 'Upcoming',
+    previewImg: 'https://firebasestorage.googleapis.com/v0/b/iconoclast-germany.appspot.com/o/fileshare%2FxEZd2jafChPIewSqgJElfBgMi3E3%2F_temp_theglass.jpg?alt=media&token=eae2852b-ab4a-4583-a029-638d2442a7df'
   },
   {
     title: 'Kurtis Wells - Higher Self',
@@ -1067,34 +1072,52 @@ export function filmPath(film: Pick<Film, 'category' | 'id'>) {
   return `${categoryBasePath(film.category)}/${film.id}`
 }
 
-/** Temporary: pull BTS / stills for the contact page photo stack. */
-export function getContactShowcaseImages(limit = 5): string[] {
-  const images: string[] = []
+export type ContactShowcaseItem = {
+  filmId: string
+  src: string
+  title: string
+  role: string
+  href: string
+}
+
+/** Pull project-linked BTS / stills for the contact page. */
+export function getContactShowcaseItems(
+  limit = 5,
+): ContactShowcaseItem[] {
+  const items: ContactShowcaseItem[] = []
+  const addItem = (film: Film, src: string) => {
+    if (!src || items.some((item) => item.src === src)) return
+    items.push({
+      filmId: film.id,
+      src,
+      title: film.title,
+      role: film.role,
+      href: filmPath(film),
+    })
+  }
 
   for (const film of films) {
     for (const extra of film.extraContent ?? []) {
       for (const image of extra.imageContents ?? []) {
-        if (image.src && !images.includes(image.src)) {
-          images.push(image.src)
-        }
+        addItem(film, image.src)
       }
     }
   }
 
   for (const film of films) {
-    if (images.length >= limit) break
+    if (items.length >= limit) break
     const preview = film.previewImg
     if (
       preview &&
       preview.startsWith('http') &&
       !preview.includes('google.com/url') &&
-      !images.includes(preview)
+      !items.some((item) => item.src === preview)
     ) {
-      images.push(preview)
+      addItem(film, preview)
     }
   }
 
-  return images.slice(0, limit)
+  return items.slice(0, limit)
 }
 
 export { toEmbedUrl } from 'app/lib/to-embed-url'

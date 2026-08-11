@@ -9,8 +9,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
   return (
-    <section className="contact-stage page-shell relative isolate flex min-h-[calc(100svh-5rem)] w-full items-center justify-center overflow-hidden py-10 sm:min-h-[calc(100svh-6rem)] sm:py-14">
-      <ScatteredPhotos />
+    <section className="contact-stage page-shell relative isolate flex min-h-svh w-full items-center justify-center overflow-hidden pb-8 pt-24 sm:pb-10 sm:pt-28">
       <div aria-hidden className="contact-stage__focus absolute inset-0 z-10" />
 
       <div className="relative z-20 w-full max-w-[540px] text-center">
@@ -29,6 +28,7 @@ export default function ContactPage() {
           <ContactForm />
         </div>
       </div>
+      <ScatteredPhotos />
     </section>
   )
 }

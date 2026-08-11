@@ -3,7 +3,6 @@
 import {
   createContext,
   useContext,
-  useId,
   type ButtonHTMLAttributes,
   type HTMLAttributes,
   type ReactNode,
@@ -202,20 +201,13 @@ export const DATA_TABLE_CSS = `
 }
 `
 
-let stylesInjected = false
-
 export function DataTableStyles() {
-  const id = useId().replace(/:/g, '')
-
-  if (typeof document !== 'undefined' && !stylesInjected) {
-    stylesInjected = true
-    const style = document.createElement('style')
-    style.setAttribute('data-data-table', id)
-    style.textContent = DATA_TABLE_CSS
-    document.head.appendChild(style)
-  }
-
-  return null
+  return (
+    <style
+      data-data-table
+      dangerouslySetInnerHTML={{ __html: DATA_TABLE_CSS }}
+    />
+  )
 }
 
 type DataTableContextValue = {

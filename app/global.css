@@ -134,6 +134,365 @@ html {
   transform-origin: center;
 }
 
+@keyframes producer-welcome-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes tape-apply {
+  0% {
+    clip-path: var(--tape-loose-clip);
+    rotate: calc(var(--tape-rotate) - 2.4deg);
+    scale: 1.018 0.91;
+    transform: translateY(-9px) skewY(-0.7deg);
+    filter: var(--tape-shadow-loose);
+    animation-timing-function: cubic-bezier(0.18, 0.72, 0.2, 1);
+  }
+
+  42% {
+    clip-path: var(--tape-contact-clip);
+    rotate: calc(var(--tape-rotate) + 0.55deg);
+    scale: 1.01 0.965;
+    transform: translateY(-2px) skewY(0.25deg);
+    filter: var(--tape-shadow-contact);
+    animation-timing-function: cubic-bezier(0.72, 0, 0.82, 0.28);
+  }
+
+  68% {
+    clip-path: var(--tape-clip);
+    rotate: calc(var(--tape-rotate) - 0.28deg);
+    scale: 1.002 1.012;
+    transform: translateY(1px) skewY(-0.12deg);
+    filter: var(--tape-shadow-rest);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  82% {
+    clip-path: var(--tape-settle-clip);
+    rotate: calc(var(--tape-rotate) + 0.13deg);
+    scale: 0.999 0.995;
+    transform: translateY(-0.5px);
+  }
+
+  92% {
+    clip-path: var(--tape-clip);
+    rotate: calc(var(--tape-rotate) - 0.06deg);
+    scale: 1.001 1;
+    transform: translateY(0.25px);
+  }
+
+  100% {
+    clip-path: var(--tape-clip);
+    rotate: var(--tape-rotate);
+    scale: 1;
+    transform: translateY(0);
+    filter: var(--tape-shadow-rest);
+  }
+}
+
+@keyframes tape-wrinkles-settle {
+  0%,
+  34% {
+    opacity: 0.08;
+    background-position:
+      -18px 0,
+      8px 0;
+    scale: 0.8 1.08;
+  }
+
+  58% {
+    opacity: 0.32;
+    background-position:
+      4px 0,
+      -3px 0;
+    scale: 1.03 0.96;
+  }
+
+  76% {
+    opacity: 0.14;
+    background-position:
+      0 0,
+      2px 0;
+    scale: 0.995 1.01;
+  }
+
+  100% {
+    opacity: 0.1;
+    background-position: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes tape-snap {
+  0% {
+    transform: translateX(8px) skewX(1deg);
+    rotate: calc(var(--tape-rotate) - 0.35deg);
+    scale: 0.995;
+  }
+
+  68% {
+    transform: translateX(-1.5px) skewX(-0.18deg);
+    rotate: calc(var(--tape-rotate) + 0.22deg);
+    scale: 1.015;
+  }
+
+  100% {
+    transform: translateX(0) skewX(0);
+    rotate: calc(var(--tape-rotate) + 0.12deg);
+    scale: 1.02;
+  }
+}
+
+.tape-strip {
+  --tape-color: #184fff;
+  --tape-rotate: -0.35deg;
+  --tape-clip: polygon(
+    0.6% 4%,
+    1.2% 0,
+    99.1% 1.5%,
+    98.7% 5%,
+    99.5% 96%,
+    98.2% 100%,
+    0.8% 98%,
+    1.1% 93%
+  );
+  --tape-loose-clip: polygon(
+    0.6% 6%,
+    1.2% 1%,
+    4.5% 3%,
+    7.2% 14%,
+    7.8% 87%,
+    5.4% 96%,
+    0.8% 99%,
+    1.1% 91%
+  );
+  --tape-contact-clip: polygon(
+    0.6% 4%,
+    1.2% 0,
+    65% 2%,
+    70% 7%,
+    69% 91%,
+    64% 98%,
+    0.8% 98%,
+    1.1% 93%
+  );
+  --tape-settle-clip: polygon(
+    0.6% 4%,
+    1.2% 0.5%,
+    99.1% 2.2%,
+    98.7% 4.5%,
+    99.5% 95.5%,
+    98.2% 99.4%,
+    0.8% 98%,
+    1.1% 93%
+  );
+  --tape-shadow-loose: drop-shadow(0 20px 18px rgba(0, 0, 0, 0.08));
+  --tape-shadow-contact: drop-shadow(0 8px 9px rgba(0, 0, 0, 0.2));
+  --tape-shadow-rest: drop-shadow(0 13px 16px rgba(0, 0, 0, 0.16));
+  isolation: isolate;
+  rotate: var(--tape-rotate);
+  transform-origin: 1% 50%;
+  background-color: var(--tape-color);
+  clip-path: var(--tape-clip);
+  filter: var(--tape-shadow-rest);
+}
+
+.tape-strip__texture,
+.tape-strip__wrinkles {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.tape-strip__texture {
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      89deg,
+      transparent 0,
+      transparent 5px,
+      rgba(255, 255, 255, 0.045) 6px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      1deg,
+      rgba(0, 0, 0, 0.025) 0,
+      rgba(0, 0, 0, 0.025) 1px,
+      transparent 2px,
+      transparent 5px
+    ),
+    linear-gradient(
+      105deg,
+      rgba(255, 255, 255, 0.045),
+      transparent 38%,
+      rgba(0, 0, 0, 0.065)
+    );
+  background-size:
+    180px 180px,
+    auto,
+    auto,
+    auto;
+  background-blend-mode: soft-light, normal, normal, multiply;
+  opacity: 0.72;
+}
+
+.tape-strip__wrinkles {
+  background-image:
+    repeating-linear-gradient(
+      96deg,
+      transparent 0,
+      transparent 18px,
+      rgba(0, 0, 0, 0.16) 19px,
+      rgba(255, 255, 255, 0.1) 20px,
+      transparent 22px,
+      transparent 39px
+    ),
+    linear-gradient(
+      177deg,
+      transparent 46%,
+      rgba(0, 0, 0, 0.16) 49%,
+      rgba(255, 255, 255, 0.08) 51%,
+      transparent 54%
+    );
+  opacity: 0.1;
+  transform-origin: left center;
+}
+
+.tape-strip--applying {
+  animation: tape-apply 500ms backwards;
+}
+
+.tape-strip--applying > .tape-strip__wrinkles {
+  animation: tape-wrinkles-settle 500ms cubic-bezier(0.2, 0.75, 0.25, 1)
+    backwards;
+}
+
+.tape-strip--interactive {
+  opacity: 0;
+  clip-path: var(--tape-loose-clip);
+}
+
+.group:hover .tape-strip--interactive,
+.group:focus-visible .tape-strip--interactive {
+  opacity: 1;
+  animation: tape-apply 500ms both;
+}
+
+.group:hover .tape-strip--interactive > .tape-strip__wrinkles,
+.group:focus-visible .tape-strip--interactive > .tape-strip__wrinkles {
+  animation: tape-wrinkles-settle 500ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.tape-strip--snap {
+  opacity: 0;
+  transition:
+    scale 70ms cubic-bezier(0.2, 0, 0, 1),
+    rotate 90ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.group:hover .tape-strip--snap,
+.group:focus-visible .tape-strip--snap {
+  opacity: 1;
+  rotate: calc(var(--tape-rotate) + 0.12deg);
+  scale: 1.02;
+  animation: tape-snap 160ms cubic-bezier(0.26, 0.7, 0.34, 1) backwards;
+}
+
+.group:active .tape-strip--snap {
+  rotate: var(--tape-rotate);
+  scale: 0.98;
+}
+
+.tape-snap-control::before {
+  position: absolute;
+  inset: -2px;
+  z-index: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0;
+  rotate: -0.8deg;
+  translate: 3px 3px;
+  background-color: color-mix(
+    in srgb,
+    var(--snap-tape-color, #44d62c) 64%,
+    #151515
+  );
+  clip-path: polygon(1% 5%, 3% 0, 98% 3%, 100% 94%, 97% 100%, 2% 97%);
+}
+
+.tape-snap-control:focus-visible::before {
+  opacity: 1;
+}
+
+.tape-strip--marker {
+  --tape-color: #44d62c;
+  --tape-rotate: -1.5deg;
+  --tape-clip: polygon(1% 5%, 3% 0, 98% 3%, 100% 94%, 97% 100%, 2% 97%);
+  --tape-loose-clip: polygon(
+    1% 7%,
+    3% 2%,
+    8% 5%,
+    10% 86%,
+    7% 96%,
+    2% 97%
+  );
+  --tape-contact-clip: polygon(
+    1% 5%,
+    3% 0,
+    67% 2%,
+    71% 91%,
+    66% 98%,
+    2% 97%
+  );
+  --tape-settle-clip: polygon(
+    1% 5%,
+    3% 0.5%,
+    98% 3.6%,
+    100% 93.5%,
+    97% 99.4%,
+    2% 97%
+  );
+  --tape-shadow-loose: drop-shadow(0 8px 7px rgba(0, 0, 0, 0.08));
+  --tape-shadow-contact: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.24));
+  --tape-shadow-rest:
+    drop-shadow(0 3px 3px rgba(0, 0, 0, 0.2))
+    drop-shadow(
+      0 0 8px color-mix(in srgb, var(--tape-color) 22%, transparent)
+    );
+  filter:
+    drop-shadow(0 3px 3px rgba(0, 0, 0, 0.2))
+    drop-shadow(
+      0 0 8px color-mix(in srgb, var(--tape-color) 22%, transparent)
+    );
+  transition:
+    rotate 180ms cubic-bezier(0.2, 0, 0, 1),
+    scale 180ms cubic-bezier(0.2, 0, 0, 1),
+    filter 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.data-table__row:hover .tape-strip--marker,
+.group:active .tape-strip--marker {
+  rotate: -0.5deg;
+  scale: 1.035;
+  filter:
+    drop-shadow(0 4px 4px rgba(0, 0, 0, 0.24))
+    drop-shadow(
+      0 0 10px color-mix(in srgb, var(--tape-color) 34%, transparent)
+    );
+}
+
+.producer-welcome--closing {
+  animation: producer-welcome-exit 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
 @keyframes film-detail-enter {
   0% {
     opacity: 0;
@@ -279,7 +638,14 @@ html {
 }
 
 .scattered-photos__frame:hover {
-  translate: 0 -10px;
+  translate: var(--tile-reveal-x, 0) var(--tile-reveal-y, -10px);
+  scale: 1.04;
+  rotate: 2deg;
+  filter: saturate(1.05);
+}
+
+.scattered-photos__frame:focus-visible {
+  translate: var(--tile-reveal-x, 0) var(--tile-reveal-y, -10px);
   scale: 1.04;
   rotate: 2deg;
   filter: saturate(1.05);
@@ -299,23 +665,73 @@ html {
   animation: scattered-photo-drift 24s ease-in-out infinite alternate;
 }
 
+@keyframes contact-project-backdrop-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes contact-project-dialog-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.contact-project-backdrop {
+  animation: contact-project-backdrop-enter 220ms ease-out both;
+}
+
+.contact-project-dialog {
+  animation: contact-project-dialog-enter 280ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .nav-active-pill,
+  .producer-welcome--closing,
+  .tape-strip--applying,
+  .tape-strip--applying > .tape-strip__wrinkles,
+  .tape-strip--interactive,
+  .tape-strip--interactive > .tape-strip__wrinkles,
+  .tape-strip--snap,
   .film-detail-enter,
   .preview-progress-bar,
   .preview-shimmer,
   .detail-media-reveal,
   .detail-rise,
   .scattered-photos__frame,
-  .scattered-photos__img {
+  .scattered-photos__img,
+  .contact-project-backdrop,
+  .contact-project-dialog {
     animation: none;
+  }
+
+  .group:hover .tape-strip--interactive,
+  .group:focus-visible .tape-strip--interactive {
+    opacity: 1;
+    clip-path: var(--tape-clip);
+  }
+
+  .group:hover .tape-strip--snap,
+  .group:focus-visible .tape-strip--snap {
+    opacity: 1;
+    rotate: var(--tape-rotate);
+    scale: 1;
   }
 
   .scattered-photos__frame {
     transform: rotate(var(--tile-rotate, 0deg));
   }
 
-  .scattered-photos__frame:hover {
+  .scattered-photos__frame:hover,
+  .scattered-photos__frame:focus-visible {
     translate: 0;
     scale: 1;
     rotate: 0deg;

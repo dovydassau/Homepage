@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { menuItems } from './nav-items'
+import { TapeStrip } from './tape-strip'
 
 function Logo() {
   return (
@@ -75,26 +76,32 @@ function ActionLink({
 }: {
   href: string
   children: React.ReactNode
-  variant: 'ghost' | 'primary'
+  variant: 'ghost' | 'primary' | 'tape'
   isActive: boolean
 }) {
   const base =
-    'relative inline-flex min-h-10 items-center overflow-hidden rounded-full px-3 py-2 text-[12px] font-medium transition-opacity sm:px-4 sm:text-[13px]'
+    'group relative inline-flex min-h-10 items-center px-3 py-2 text-[12px] font-medium focus-visible:outline-none sm:px-4 sm:text-[13px]'
+  const focusClass =
+    variant === 'tape'
+      ? ''
+      : 'focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]'
 
   const variantClass =
-    variant === 'primary'
-      ? isActive
-        ? 'bg-[var(--foreground)] text-[var(--background)] ring-2 ring-[var(--foreground)] ring-offset-2 ring-offset-[var(--background)]'
-        : 'bg-[var(--foreground)] text-[var(--background)] hover:opacity-85'
-      : isActive
-        ? 'text-[var(--foreground)]'
-        : 'text-[var(--foreground)] hover:bg-[var(--surface-muted)]'
+    variant === 'tape'
+      ? 'tape-snap-control rounded-2xl border border-[var(--border)] bg-[var(--background)]/90 text-[var(--foreground)] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_10px_30px_-20px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-[border-color,background-color,color,opacity] duration-200 hover:border-transparent hover:text-black focus-visible:border-transparent focus-visible:text-black [--snap-tape-color:#FF5C00]'
+      : variant === 'primary'
+        ? isActive
+          ? 'rounded-full bg-[var(--foreground)] text-[var(--background)] ring-2 ring-[var(--foreground)] ring-offset-2 ring-offset-[var(--background)]'
+          : 'rounded-full bg-[var(--foreground)] text-[var(--background)] transition-opacity hover:opacity-85'
+        : isActive
+          ? 'rounded-full text-[var(--foreground)]'
+          : 'rounded-full text-[var(--foreground)] hover:bg-[var(--surface-muted)]'
 
   return (
     <Link
       href={href}
       aria-current={isActive ? 'page' : undefined}
-      className={`${base} ${variantClass}`}
+      className={`${base} ${focusClass} ${variantClass}`}
     >
       {isActive && variant === 'ghost' && (
         <span className="nav-active-pill absolute inset-0 rounded-full bg-[var(--surface-muted)]" />
@@ -102,7 +109,16 @@ function ActionLink({
       {isActive && variant === 'primary' && (
         <span className="nav-active-pill absolute inset-0 rounded-full bg-[var(--foreground)]" />
       )}
-      <span className="relative">{children}</span>
+      {variant === 'tape' && (
+        <TapeStrip
+          aria-hidden
+          variant="marker"
+          color="#FF5C00"
+          animate="snap"
+          className="absolute -inset-[2px] [--tape-rotate:1.5deg]"
+        />
+      )}
+      <span className="relative z-10">{children}</span>
     </Link>
   )
 }
@@ -142,9 +158,14 @@ function NavMenu({
 
 export function Navbar() {
   const pathname = usePathname()
+  const overlaysContent = isActivePath(pathname, '/contact')
 
   return (
-    <header className="page-shell sticky top-0 z-50 w-full pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-3 sm:pt-3 lg:pt-4">
+    <header
+      className={`page-shell top-0 z-50 w-full pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] sm:pb-3 sm:pt-3 lg:pt-4 ${
+        overlaysContent ? 'fixed inset-x-0' : 'sticky'
+      }`}
+    >
       <div
         aria-hidden
         className="nav-scrim pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.5rem)]"
@@ -181,7 +202,7 @@ export function Navbar() {
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <ActionLink
               href="/contact"
-              variant="ghost"
+              variant="tape"
               isActive={isActivePath(pathname, '/contact')}
             >
               contact

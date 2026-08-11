@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { TapeStrip } from 'app/components/tape-strip'
 import { sendContactEmail, type ContactState } from './actions'
 
 const initialState: ContactState = { status: 'idle', message: '' }
@@ -16,12 +17,18 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[var(--foreground)] px-5 text-[14px] font-medium text-[var(--background)] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-200 hover:opacity-85 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
+      className="tape-snap-control group relative inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--background)]/90 px-5 text-[14px] font-medium text-[var(--foreground)] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_10px_30px_-20px_rgba(0,0,0,0.2)] backdrop-blur-xl transition-[border-color,background-color,color,opacity] duration-200 hover:border-transparent hover:text-black focus-visible:border-transparent focus-visible:text-black focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60"
     >
+      <TapeStrip
+        aria-hidden
+        variant="marker"
+        animate="snap"
+        className="absolute -inset-[2px] z-0"
+      />
       {pending && (
-        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--background)] border-t-transparent" />
+        <span className="relative z-10 h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
       )}
-      <span>{pending ? 'Sending…' : 'Send'}</span>
+      <span className="relative z-10">{pending ? 'Sending…' : 'Send'}</span>
       {!pending && (
         <svg
           width="14"
@@ -29,6 +36,7 @@ function SubmitButton() {
           viewBox="0 0 14 14"
           fill="none"
           aria-hidden="true"
+          className="relative z-10"
         >
           <path
             d="M2.5 7H11.5M8 3.5L11.5 7L8 10.5"
