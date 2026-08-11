@@ -27,6 +27,14 @@ function Logo() {
 }
 
 function isActivePath(pathname: string, href: string) {
+  if (href === '/films') {
+    return (
+      pathname === '/films' ||
+      pathname.startsWith('/films/') ||
+      pathname === '/assistant' ||
+      pathname.startsWith('/assistant/')
+    )
+  }
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
@@ -144,29 +152,33 @@ export function Navbar() {
       <div className="mx-auto max-w-[1400px]">
         <div className="nav-floating relative flex items-center justify-between gap-2 rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5">
           <Link
-            href="/"
-            aria-current={pathname === '/' ? 'page' : undefined}
+            href="/films"
+            aria-current={isActivePath(pathname, '/films') ? 'page' : undefined}
             className="flex min-h-8 min-w-0 flex-1 items-center gap-2 text-[14px] font-medium tracking-tight text-[var(--foreground)] transition-opacity hover:opacity-70 sm:min-h-11 sm:gap-2.5 sm:text-[15px] md:flex-none"
           >
             <Logo />
             <span className="truncate">dovydas saudys</span>
           </Link>
 
-          <nav
-            className="absolute left-1/2 hidden -translate-x-1/2 items-center text-[14px] md:flex"
-            aria-label="Main"
-          >
-            <NavMenu pathname={pathname} />
-          </nav>
+          {menuItems.length > 0 && (
+            <>
+              <nav
+                className="absolute left-1/2 hidden -translate-x-1/2 items-center text-[14px] md:flex"
+                aria-label="Main"
+              >
+                <NavMenu pathname={pathname} />
+              </nav>
 
-          <nav
-            className="flex shrink-0 items-center text-[12px] leading-none md:hidden"
-            aria-label="Main mobile"
-          >
-            <NavMenu pathname={pathname} size="mobile" />
-          </nav>
+              <nav
+                className="flex shrink-0 items-center text-[12px] leading-none md:hidden"
+                aria-label="Main mobile"
+              >
+                <NavMenu pathname={pathname} size="mobile" />
+              </nav>
+            </>
+          )}
 
-          <div className="hidden shrink-0 items-center gap-1.5 sm:gap-2 md:flex">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <ActionLink
               href="/contact"
               variant="ghost"

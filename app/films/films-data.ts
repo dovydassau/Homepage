@@ -1052,8 +1052,49 @@ export function getFilmBySlug(slug: string): Film | undefined {
   return films.find((film) => film.id === slug)
 }
 
-export function getFilmSlugs(): string[] {
-  return films.map((film) => film.id)
+export function getFilmSlugs(category?: FilmCategory): string[] {
+  const list = category
+    ? films.filter((film) => film.category === category)
+    : films
+  return list.map((film) => film.id)
+}
+
+export function categoryBasePath(category: FilmCategory) {
+  return category === 'assistant' ? '/assistant' : '/films'
+}
+
+export function filmPath(film: Pick<Film, 'category' | 'id'>) {
+  return `${categoryBasePath(film.category)}/${film.id}`
+}
+
+/** Temporary: pull BTS / stills for the contact page photo stack. */
+export function getContactShowcaseImages(limit = 5): string[] {
+  const images: string[] = []
+
+  for (const film of films) {
+    for (const extra of film.extraContent ?? []) {
+      for (const image of extra.imageContents ?? []) {
+        if (image.src && !images.includes(image.src)) {
+          images.push(image.src)
+        }
+      }
+    }
+  }
+
+  for (const film of films) {
+    if (images.length >= limit) break
+    const preview = film.previewImg
+    if (
+      preview &&
+      preview.startsWith('http') &&
+      !preview.includes('google.com/url') &&
+      !images.includes(preview)
+    ) {
+      images.push(preview)
+    }
+  }
+
+  return images.slice(0, limit)
 }
 
 export { toEmbedUrl } from 'app/lib/to-embed-url'
