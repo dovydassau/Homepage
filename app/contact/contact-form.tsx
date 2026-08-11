@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { sendContactEmail, type ContactState } from './actions'
 
@@ -28,6 +28,11 @@ function SubmitButton() {
 
 export function ContactForm() {
   const [state, formAction] = useActionState(sendContactEmail, initialState)
+  // Controlled so values persist on validation/send failure. React otherwise
+  // resets uncontrolled fields after a form action completes.
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
 
   if (state.status === 'success') {
     return (
@@ -56,6 +61,8 @@ export function ContactForm() {
           name="name"
           type="text"
           autoComplete="name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
           className={fieldClass}
           placeholder="Your name"
         />
@@ -78,6 +85,8 @@ export function ContactForm() {
           name="email"
           type="email"
           autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className={fieldClass}
           placeholder="you@email.com"
         />
@@ -99,6 +108,8 @@ export function ContactForm() {
           id="message"
           name="message"
           rows={5}
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
           className={`${fieldClass} resize-y`}
           placeholder="Tell me about your project…"
         />

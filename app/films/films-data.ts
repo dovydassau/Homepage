@@ -9,11 +9,18 @@ export type Credit = CreditInput & {
   id: string
 }
 
+export type ExtraImageInput = {
+  src: string
+  description?: string
+}
+
 export type ExtraContentInput = {
   title: string
   description?: string
   // Full YouTube or Vimeo watch URL; embedded below the credits.
-  videoUrl: string
+  videoUrl?: string
+  // Optional stills shown below the title (e.g. behind-the-scenes photos).
+  imageContents?: ExtraImageInput[]
 }
 
 export type ExtraContent = ExtraContentInput & {
@@ -38,7 +45,7 @@ export type Film = {
   previewImg?: string
   // Optional paragraph shown after the credits list.
   description?: string
-  // Optional extra videos (behind the scenes, etc.) shown after the description.
+  // Optional extra media (behind the scenes, etc.) shown after the description.
   extraContent?: ExtraContent[]
   // Optional label, e.g. 'Upcoming', shown as a pill in the list and detail.
   tag?: string
@@ -140,7 +147,7 @@ type DopEntry = {
   type?: string
   production: string
   service?: string
-  director: string
+  director?: string
   // Sort date: 'YYYY', 'YYYY-MM', or 'YYYY-MM-DD'. UI shows year only.
   date: string
   notes?: string
@@ -152,7 +159,7 @@ type DopEntry = {
   previewImg?: string
   // Optional paragraph shown after the credits list.
   description?: string
-  // Optional extra videos (behind the scenes, etc.) shown after the description.
+  // Optional extra media (behind the scenes, etc.) shown after the description.
   extraContent?: ExtraContentInput[]
   tag?: string
 }
@@ -235,6 +242,16 @@ const dopEntries: DopEntry[] = [
       { label: 'Hair & Makeup', value: 'Sidas Martinavičius' },
       { label: 'Color grading', value: 'Rimvydas Ardickas' },
     ],
+    extraContent: [
+      {
+        title: 'BTS',
+        imageContents: [
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fhumana%2FR1-02806-015A.jpeg?alt=media&token=bd4ca1ef-c461-4b3d-acd8-73b9a8148a72',
+          },
+        ],
+      },
+    ],
   },
   {
     title: 'Neoline - Radars',
@@ -243,7 +260,7 @@ const dopEntries: DopEntry[] = [
     director: 'Dovydas Šaudys',
     date: '2021-07',
     videoUrl: 'https://vimeo.com/581535132',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Rimvydas Ardickas' },
       { label: 'Casting', value: 'Aneta Makavičiūtė' },
     ]
@@ -271,7 +288,7 @@ const dopEntries: DopEntry[] = [
     director: 'Elėja Atkočiūnas',
     date: '2021-07',
     videoUrl: 'https://www.youtube.com/watch?v=VZeg-RVbpts',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Rimvydas Ardickas' },
       { label: 'Casting', value: 'Aneta Makavičiūtė' },
     ]
@@ -283,7 +300,7 @@ const dopEntries: DopEntry[] = [
     director: 'Rimvydas Ardickas',
     date: '2021-04',
     videoUrl: 'https://vimeo.com/541510749',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Dovydas Šaudys' },
     ]
   },
@@ -294,7 +311,7 @@ const dopEntries: DopEntry[] = [
     director: 'Rimvydas Ardickas',
     date: '2020-06',
     videoUrl: 'https://vimeo.com/431261919',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Dovydas Šaudys' },
     ]
   },
@@ -305,7 +322,7 @@ const dopEntries: DopEntry[] = [
     director: 'Dovydas Šaudys',
     date: '2018-10',
     videoUrl: 'https://www.youtube.com/watch?v=VcS6NJSiCcU',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Dovydas Šaudys' },
     ]
   },
@@ -359,14 +376,32 @@ const dopEntries: DopEntry[] = [
   },
   {
     title: 'Neoline - Scooters',
+    role: 'Director & Edit',
     type: 'Commercial',
-    production: 'Ekspromtu',
-    director: 'Dovydas Šaudys',
+    production: 'Independent',
     date: '2021-04',
     videoUrl: 'https://vimeo.com/541514535',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'DP', value: 'Rimvydas Ardickas' },
-    ]
+    ],
+    extraContent: [
+      {
+        title: 'Additional Campaign Film',
+        videoUrl: 'https://vimeo.com/578806446',
+      },
+      {
+        title: 'BTS',
+        imageContents: [
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fneoline-scooters%2F_neoline_2.jpg?alt=media&token=9be95ca2-896b-406c-984d-71ababa293f8',
+            description: 'Me & Cast',
+          },
+          {
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fneoline-scooters%2F_neoline1.jpg?alt=media&token=76e0fae0-50ff-4dd0-b290-35d48daa519f',
+          },
+        ],
+      },
+    ],
   },
   {
     title: 'Beside the Pool - Strong, but Weak',
@@ -376,7 +411,7 @@ const dopEntries: DopEntry[] = [
     director: 'Dovydas Šaudys',
     date: '2019-02',
     videoUrl: 'https://vimeo.com/332676375',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'Performed by', value: 'Justinas Jautžemis' },
       { label: 'Camera', value: 'Gvidas Bindokas' },
       { label: 'Camera', value: 'Martynas Lapinskas' },
@@ -406,7 +441,7 @@ type CrewEntry = {
   previewImg?: string
   // Optional paragraph shown after the credits list.
   description?: string
-  // Optional extra videos (behind the scenes, etc.) shown after the description.
+  // Optional extra media (behind the scenes, etc.) shown after the description.
   extraContent?: ExtraContentInput[]
   tag?: string
 }
@@ -472,6 +507,14 @@ const crewEntries: CrewEntry[] = [
     director: 'Niclas Larsson',
     videoUrl: 'https://www.youtube.com/watch?v=42Njr9STs68',
     previewImg: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/thumbnails%2F3A22C54B-ED45-4066-B0F0-1E8A2E9CB02E_1736869099216.jpeg?alt=media&token=3a19a170-e66b-4ba7-bc90-a287ee26e733',
+    extraContent: [
+      {
+        title: 'Memories',
+        imageContents: [
+           { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F24%20lufthansa%2F_luft1.jpeg?alt=media&token=39735cd1-1600-495a-9536-bb5d87170243' },
+        ],
+      },
+    ],
   },
   {
     title: "Finn Ronsdorf - Let's Say Goodbye",
@@ -562,16 +605,6 @@ const crewEntries: CrewEntry[] = [
     ],
   },
   {
-    title: 'Come in the form of Milk',
-    type: 'Video Installation',
-    role: '1st AC',
-    production: 'Kaunas 2022',
-    director: 'Karin Pisarikova',
-    dp: 'Rimvydas Ardickas',
-    year: '2021',
-    videoUrl: 'https://vimeo.com/576654322',
-  },
-  {
     title: 'Free Finga - Atlanta',
     type: 'Music Video',
     role: '1st AC',
@@ -613,7 +646,7 @@ const crewEntries: CrewEntry[] = [
     dp: 'Matas Galdikas',
     year: '2024',
     videoUrl: 'https://www.youtube.com/watch?v=9W4SeGNzRJ8',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'Gaffer', value: 'Darius Juknevičius' },
       { label: 'Spark', value: 'Morta Paunksnytė' },
       { label: 'Spark', value: 'Kasparas Plauška' },
@@ -628,6 +661,15 @@ const crewEntries: CrewEntry[] = [
     dp: 'Laurynas Lukoševičius',
     year: '2021',
     videoUrl: 'https://vimeo.com/523138138',
+  },
+  {
+    title: 'Shvininiai Sharvai - Trenininginiai Pingvinai',
+    type: 'Music Video',
+    role: '1st AC',
+    production: 'Independent',
+    director: 'Kristupas Zmejauskas',
+    year: '2022',
+    videoUrl: 'https://www.youtube.com/watch?v=L2oDCttISFw',
   },
   {
     title: 'Ikea - New Season',
@@ -658,6 +700,15 @@ const crewEntries: CrewEntry[] = [
     dp: 'Chester Briscall-Harvey',
     year: '2022',
     videoUrl: 'https://vimeo.com/776246740',
+    extraContent: [
+      {
+        title: 'Poster',
+        imageContents: [
+          { src: 'https://static.wixstatic.com/media/04de08_18f573ed71e2439da3e432dd9bc104a0~mv2.jpg/v1/fill/w_720,h_976,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Plakatas%20FINAL.jpg' },
+        ],
+      },
+    ],
+    // linkUrl: https://chesterbh.com/flowerssomanyflowers
   },
   {
     title: 'Juoda Juoda Naktis',
@@ -692,6 +743,17 @@ const crewEntries: CrewEntry[] = [
     videoUrl: 'https://www.youtube.com/watch?v=viDvA03BDe4',
   },
   {
+    title: 'Circle K - Christmas',
+    role: 'PA',
+    production: 'Grandma Enterprise',
+    director: 'Martynas Norvaišas',
+    year: '2022',
+    videoUrl: 'https://www-ccv.adobe.io/v1/player/ccv/G_GYnt5wLSV/embed?bgcolor=%23191919&lazyLoading=true&api_key=BehancePro2View',
+    extraCredits: [
+      { label: 'Producer', value: 'Tadas Vaitmonas' },
+    ],
+  },
+  {
     title: 'Pasaulis be stiklo',
     type: 'TVC',
     role: 'Spark',
@@ -721,6 +783,31 @@ const crewEntries: CrewEntry[] = [
     dp: 'Paul Özgür',
     year: '2022',
     videoUrl: 'https://www.youtube.com/watch?v=G4ylegvL9ms',
+  },
+  {
+    title: 'The Truth Will Out - Season 2',
+    role: 'Office PA',
+    production: 'Yellow Bird',
+    service: 'Ahil Films',
+    director: 'Kjell-Åke Andersson',
+    year: '2021',
+    videoUrl: 'https://www.youtube.com/watch?v=dzyB4ebwETI',
+    extraContent: [
+      {
+        title: 'Office Runner BTS',
+        imageContents: [
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0006.JPG?alt=media&token=98b82f8f-7dec-407d-bc4f-6267309bd9a2' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0010.JPG?alt=media&token=176b0c4f-9aeb-4e0d-ac6b-b83e43a9ed42' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0011.JPG?alt=media&token=bc702db6-b867-46fc-b2b6-347be0aaaced' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2Fahil%2FR1-09834-0023.JPG?alt=media&token=12d4a933-45ab-4bb2-8280-58a934d9d965' },
+        ],
+      },
+      {
+        title: 'Office Runner BTS',
+        description: 'That time when we found out someone has Covid.',
+        videoUrl: 'https://www.youtube.com/watch?v=n1Xqop0C0pg',
+      },
+    ],
   },
   {
     title: 'Coca Cola - That Moment When',
@@ -803,10 +890,19 @@ const crewEntries: CrewEntry[] = [
     dp: 'Mika Orasmaa',
     year: '2019',
     videoUrl: 'https://www.youtube.com/watch?v=ZuiiwcI_5Wg',
-    extraCredits: [ 
+    extraCredits: [
       { label: 'SFX Supervisor', value: 'Darius Cicėnas' },
       { label: '1st AD', value: 'Lukas Kudapčenka' },
-    ]
+      { label: 'PA', value: 'Fernanda Marija Medziukaitė' }
+    ],
+    extraContent: [
+      {
+        title: 'Memories',
+        imageContents: [
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328' },
+        ],
+      },
+    ],
   },
   {
     title: 'Adidas Originals - Athletes of Change',
@@ -846,6 +942,15 @@ const crewEntries: CrewEntry[] = [
     year: '2019',
     videoUrl: 'https://vimeo.com/710304268',
     previewImg: 'https://as2.ftcdn.net/v2/jpg/02/17/00/79/1000_F_217007945_kSszXIfoAqBdZhBbOQATmGaoMHTeS6W2.jpg',
+    extraContent: [
+      {
+        title: 'Memories',
+        imageContents: [
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea3.jpeg?alt=media&token=1e7f0580-4b48-4a03-a2bb-d960294ec328' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20nivea%2F_nivea1.jpeg?alt=media&token=a26695e9-111e-48b2-9bdd-afb65880e956' },
+        ],
+      },
+    ],
   },
   {
     title: 'SSENSE x Gucci - Balztanz',
@@ -856,7 +961,21 @@ const crewEntries: CrewEntry[] = [
     dp: 'Cezary Zacharewicz',
     year: '2019',
     videoUrl: 'https://www.youtube.com/watch?v=XD2eMcXjF9A',
-    previewImg: 'https://i.ytimg.com/vi/XD2eMcXjF9A/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAAOSdT_9O0XOqQpDFJiSy8aulrtA'
+    previewImg: 'https://i.ytimg.com/vi/XD2eMcXjF9A/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAAOSdT_9O0XOqQpDFJiSy8aulrtA',
+    extraContent: [
+      {
+        title: 'Memories',
+        imageContents: [
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci1.jpeg?alt=media&token=62f47adc-15c4-4911-99d2-950c49afba48' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci2.jpeg?alt=media&token=a727f18c-ba12-40be-be79-49a0686b7ec1' },
+          { src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci3.jpeg?alt=media&token=14c62b3b-5919-4fa6-83e7-0b80cc3e4f68' },
+          { 
+            src: 'https://firebasestorage.googleapis.com/v0/b/dovydassaudys-da036.firebasestorage.app/o/content%2F19%20gucci%2F_gucci4.jpeg?alt=media&token=948f69ba-8e21-43bf-85b4-66b6fadae8c3',
+            description: 'Matt Lambert & Me'
+          },
+        ],
+      },
+    ],
   },
 ]
 
@@ -900,30 +1019,30 @@ const assistantFilms: Film[] = [...crewEntries]
     const date = parseFilmDate(entry.year)
     const filmId = slugify(entry.title)
     return {
-    id: filmId,
-    title: entry.title,
-    role: entry.role,
-    type: entry.type,
-    date,
-    year: formatFilmYear(date),
-    production: entry.production,
-    category: 'assistant' as const,
-    gradient: gradients[index % gradients.length],
-    videoUrl: entry.videoUrl,
-    tag: entry.tag,
-    previewImg: entry.previewImg,
-    description: entry.description,
-    extraContent: buildExtraContent(filmId, entry.extraContent),
-    credits: buildCredits(filmId, [
-      ...credit('Role', entry.role),
-      ...credit('Type', entry.type),
-      ...credit('Director', entry.director),
-      ...credit('DP', entry.dp),
-      ...credit('Production', entry.production),
-      ...credit('Service', entry.service),
-      ...credit('Notes', entry.notes),
-      ...(entry.extraCredits ?? []),
-    ]),
+      id: filmId,
+      title: entry.title,
+      role: entry.role,
+      type: entry.type,
+      date,
+      year: formatFilmYear(date),
+      production: entry.production,
+      category: 'assistant' as const,
+      gradient: gradients[index % gradients.length],
+      videoUrl: entry.videoUrl,
+      tag: entry.tag,
+      previewImg: entry.previewImg,
+      description: entry.description,
+      extraContent: buildExtraContent(filmId, entry.extraContent),
+      credits: buildCredits(filmId, [
+        ...credit('Role', entry.role),
+        ...credit('Type', entry.type),
+        ...credit('Director', entry.director),
+        ...credit('DP', entry.dp),
+        ...credit('Production', entry.production),
+        ...credit('Service', entry.service),
+        ...credit('Notes', entry.notes),
+        ...(entry.extraCredits ?? []),
+      ]),
     }
   })
 

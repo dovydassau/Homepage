@@ -1,7 +1,21 @@
 export function toEmbedUrl(url: string): string | null {
   try {
-    const parsed = new URL(url)
+    const parsed = new URL(url.trim())
     const host = parsed.hostname.replace(/^www\./, '')
+
+    if (host === 'www-ccv.adobe.io' || host === 'ccv.adobe.io') {
+      if (parsed.pathname.includes('/embed')) {
+        return parsed.toString()
+      }
+
+      const match = parsed.pathname.match(/\/v1\/player\/ccv\/([^/]+)/)
+      if (match?.[1]) {
+        parsed.pathname = `/v1/player/ccv/${match[1]}/embed`
+        return parsed.toString()
+      }
+
+      return null
+    }
 
     if (host === 'youtu.be') {
       const id = parsed.pathname.slice(1)
