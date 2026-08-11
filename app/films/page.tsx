@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { PageShell } from 'app/components/page-shell'
 import { FilmsShowcase } from './films-showcase'
+import { FilmsViewport } from './films-viewport'
 
 export const metadata: Metadata = {
   title: 'Films',
@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function FilmsPage() {
   return (
-    <PageShell>
+    <FilmsViewport>
       <FilmsShowcase initialCategory="featured" />
-    </PageShell>
+    </FilmsViewport>
   )
 }

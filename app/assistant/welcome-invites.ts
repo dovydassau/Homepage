@@ -9,7 +9,7 @@ export type WelcomeInvite = {
 const welcomeInvites: Readonly<Record<string, WelcomeInvite>> = {
   kr: {
     name: 'Karin',
-    workedIn: ['lufthansa-all-it-takes-is-a-yes'],
+    workedIn: ['lufthansa-all-it-takes-is-a-yes', 'telekom-the-teacher', 'mercedes-ft-tyla'],
     validUntil: Date.UTC(2026, 11),
   },
   pars: {
@@ -18,7 +18,12 @@ const welcomeInvites: Readonly<Record<string, WelcomeInvite>> = {
   },
   nb: {
     name: 'Nico',
-    workedIn: ['telekom-the-teacher', 'serious-klein-up'],
+    workedIn: ['serious-klein-up', 'ssense-x-gucci-balztanz'],
+    validUntil: Date.UTC(2026, 11),
+  },
+  ta: {
+    name: 'Tim',
+    workedIn: ['zdf-olympia', 'aldi-nord-gute-beats-fur-alle'],
     validUntil: Date.UTC(2026, 11),
   }
 }

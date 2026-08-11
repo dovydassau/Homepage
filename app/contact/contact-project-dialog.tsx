@@ -103,7 +103,7 @@ export function ContactProjectDialog({
 }: {
   film: Film
   index: number
-  source: SourceFrame
+  source?: SourceFrame
   onClose: () => void
 }) {
   const [mounted, setMounted] = useState(false)
@@ -197,7 +197,7 @@ export function ContactProjectDialog({
           <FilmDetail film={film} index={index} />
         </div>
       </div>
-      <ExpandingImage source={source} dialogRef={dialogRef} />
+      {source && <ExpandingImage source={source} dialogRef={dialogRef} />}
     </div>,
     document.body,
   )

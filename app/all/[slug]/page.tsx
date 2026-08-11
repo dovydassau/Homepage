@@ -5,26 +5,26 @@ import { FilmsShowcase } from '../../films/films-showcase'
 import {
   films,
   getFilmBySlug,
-  isFilmVisibleInWorks,
+  isFilmVisibleInAll,
 } from '../../films/films-data'
 
-type WorksFilmPageProps = {
+type AllFilmPageProps = {
   params: Promise<{ slug: string }>
 }
 
 export function generateStaticParams() {
   return films
-    .filter(isFilmVisibleInWorks)
+    .filter(isFilmVisibleInAll)
     .map((film) => ({ slug: film.id }))
 }
 
 export async function generateMetadata({
   params,
-}: WorksFilmPageProps): Promise<Metadata> {
+}: AllFilmPageProps): Promise<Metadata> {
   const { slug } = await params
   const film = getFilmBySlug(slug)
 
-  if (!film || !isFilmVisibleInWorks(film)) {
+  if (!film || !isFilmVisibleInAll(film)) {
     return { title: 'Work not found' }
   }
 
@@ -42,11 +42,11 @@ export async function generateMetadata({
   }
 }
 
-export default async function WorksFilmPage({ params }: WorksFilmPageProps) {
+export default async function AllFilmPage({ params }: AllFilmPageProps) {
   const { slug } = await params
   const film = getFilmBySlug(slug)
 
-  if (!film || !isFilmVisibleInWorks(film)) {
+  if (!film || !isFilmVisibleInAll(film)) {
     notFound()
   }
 
@@ -55,7 +55,7 @@ export default async function WorksFilmPage({ params }: WorksFilmPageProps) {
       <FilmsShowcase
         initialSlug={slug}
         initialCategory="all"
-        excludeIndependent
+        allBasePath="/all"
       />
     </PageShell>
   )

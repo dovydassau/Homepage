@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { PageShell } from 'app/components/page-shell'
 import { FilmsShowcase } from '../../films/films-showcase'
+import { FilmsViewport } from '../../films/films-viewport'
 import {
   filmPath,
   getFilmBySlug,
@@ -53,8 +53,8 @@ export default async function AssistantFilmPage({
   }
 
   return (
-    <PageShell>
+    <FilmsViewport>
       <FilmsShowcase initialSlug={slug} initialCategory="assistant" />
-    </PageShell>
+    </FilmsViewport>
   )
 }

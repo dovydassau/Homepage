@@ -55,7 +55,6 @@ export function ContactForm() {
   const [state, formAction] = useActionState(sendContactEmail, initialState)
   // Controlled so values persist on validation/send failure. React otherwise
   // resets uncontrolled fields after a form action completes.
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
 
@@ -77,27 +76,6 @@ export function ContactForm() {
 
   return (
     <form action={formAction} className="space-y-3" noValidate>
-      <div>
-        <label htmlFor="name" className="sr-only">
-          Name
-        </label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          autoComplete="name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className={`${fieldClass} h-12`}
-          placeholder="Your name"
-        />
-        {state.fieldErrors?.name && (
-          <p className="mt-1 text-[12px] text-[var(--accent)]">
-            {state.fieldErrors.name}
-          </p>
-        )}
-      </div>
-
       <div>
         <label htmlFor="message" className="sr-only">
           Message
