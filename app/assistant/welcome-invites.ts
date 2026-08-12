@@ -25,6 +25,10 @@ const welcomeInvites: Readonly<Record<string, WelcomeInvite>> = {
     name: 'Tim',
     workedIn: ['zdf-olympia', 'aldi-nord-gute-beats-fur-alle'],
     validUntil: Date.UTC(2026, 11),
+  },
+  is: {
+    name: 'Ignas',
+    workedIn: ['free-finga-vien-tik-tu', 'lucid-dreams', 'atgal-i-laisve-15'],
   }
 }
 
